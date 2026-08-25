@@ -13,45 +13,34 @@ export async function POST(request: Request) {
       );
     }
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (!error && data.user && data.session) {
-          return NextResponse.json({
-            success: true,
-            user: {
-              id: data.user.id,
-              email: data.user.email,
-              name: data.user.user_metadata?.full_name || email.split('@')[0],
-            },
-            token: data.session.access_token,
-          });
-        }
-
-        if (error) {
-          console.warn('Supabase auth attempt:', error.message);
-        }
-      } catch (sbErr) {
-        console.warn('Supabase auth catch error:', sbErr);
-      }
+    if (!isSupabaseConfigured || !supabase) {
+      return NextResponse.json(
+        { error: 'Authentication service is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' },
+        { status: 503 }
+      );
     }
 
-    // Seamless Local Session Fallback (ensures user is never blocked by pending email confirmations or network delays)
-    const userId = crypto.randomUUID();
-    const token = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({ userId, email, exp: Date.now() + 86400000 }))}`;
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
+
+    if (!data.user || !data.session) {
+      return NextResponse.json({ error: 'Login failed. No session returned.' }, { status: 401 });
+    }
 
     return NextResponse.json({
       success: true,
       user: {
-        id: userId,
-        email,
-        name: email.split('@')[0],
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.user_metadata?.full_name || email.split('@')[0],
       },
-      token,
+      token: data.session.access_token,
     });
   } catch (err: any) {
     return NextResponse.json(

@@ -13,52 +13,55 @@ export async function POST(request: Request) {
       );
     }
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: name || email.split('@')[0],
-            },
-          },
-        });
-
-        if (!error && data.user) {
-          const fallbackToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({ userId: data.user.id, email, exp: Date.now() + 86400000 }))}`;
-
-          return NextResponse.json({
-            success: true,
-            user: {
-              id: data.user.id,
-              email: data.user.email,
-              name: data.user.user_metadata?.full_name || name || email.split('@')[0],
-            },
-            token: data.session?.access_token || fallbackToken,
-          });
-        }
-
-        if (error) {
-          console.warn('Supabase signUp error:', error.message);
-        }
-      } catch (sbErr) {
-        console.warn('Supabase signUp catch error:', sbErr);
-      }
+    if (!isSupabaseConfigured || !supabase) {
+      return NextResponse.json(
+        { error: 'Authentication service is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' },
+        { status: 503 }
+      );
     }
 
-    // Local Session Fallback
-    const userId = crypto.randomUUID();
-    const token = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({ userId, email, exp: Date.now() + 86400000 }))}`;
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name || email.split('@')[0],
+        },
+      },
+    });
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    if (!data.user) {
+      return NextResponse.json({ error: 'Sign up failed. Please try again.' }, { status: 400 });
+    }
+
+    // If email confirmation is disabled in Supabase, data.session will be present immediately.
+    // If email confirmation is enabled, data.session will be null — user must confirm email first.
+    if (!data.session) {
+      return NextResponse.json({
+        success: true,
+        requiresEmailConfirmation: true,
+        message: 'Account created. Please check your email to confirm your account before logging in.',
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.user_metadata?.full_name || name || email.split('@')[0],
+        },
+        token: null,
+      });
+    }
 
     return NextResponse.json({
       success: true,
       user: {
-        id: userId,
-        email,
-        name: name || email.split('@')[0],
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.user_metadata?.full_name || name || email.split('@')[0],
       },
-      token,
+      token: data.session.access_token,
     });
   } catch (err: any) {
     return NextResponse.json(

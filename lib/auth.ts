@@ -8,24 +8,25 @@ export interface UserSession {
 }
 
 const STORAGE_KEY = 'productforge_session';
+const COOKIE_NAME = 'session_token';
+
+// Set session cookie so middleware can read it for route protection
+function setSessionCookie(token: string) {
+  if (typeof document === 'undefined') return;
+  const maxAge = 60 * 60 * 24 * 7; // 7 days
+  document.cookie = `${COOKIE_NAME}=${token}; path=/; max-age=${maxAge}; SameSite=Strict`;
+}
+
+// Clear session cookie on logout
+function clearSessionCookie() {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${COOKIE_NAME}=; path=/; max-age=0; SameSite=Strict`;
+}
 
 export async function getCurrentUser(): Promise<UserSession | null> {
   if (typeof window === 'undefined') return null;
 
-  // 1. Check local session storage first
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      const parsed: UserSession = JSON.parse(stored);
-      if (parsed && parsed.id && parsed.email) {
-        return parsed;
-      }
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }
-
-  // 2. Check Supabase active session
+  // 1. Check Supabase active session first (most authoritative)
   if (isSupabaseConfigured && supabase) {
     try {
       const { data } = await supabase.auth.getSession();
@@ -38,6 +39,7 @@ export async function getCurrentUser(): Promise<UserSession | null> {
           token: session.access_token,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(userObj));
+        setSessionCookie(session.access_token);
         return userObj;
       }
     } catch (err) {
@@ -45,7 +47,19 @@ export async function getCurrentUser(): Promise<UserSession | null> {
     }
   }
 
-  // Strictly null if unauthenticated
+  // 2. Fall back to localStorage cache
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    try {
+      const parsed: UserSession = JSON.parse(stored);
+      if (parsed && parsed.id && parsed.email && parsed.token) {
+        return parsed;
+      }
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }
+
   return null;
 }
 
@@ -57,6 +71,12 @@ export async function signupUser(email: string, password: string, name?: string)
   });
 
   const data = await res.json();
+
+  // Handle email confirmation required case
+  if (data.requiresEmailConfirmation) {
+    throw new Error('Account created! Please check your email to confirm your account, then log in.');
+  }
+
   if (!res.ok || !data.success) {
     throw new Error(data.error || 'Failed to sign up.');
   }
@@ -68,8 +88,9 @@ export async function signupUser(email: string, password: string, name?: string)
     token: data.token,
   };
 
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && data.token) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    setSessionCookie(data.token);
   }
 
   return session;
@@ -96,6 +117,7 @@ export async function loginUser(email: string, password?: string): Promise<UserS
 
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    setSessionCookie(data.token);
   }
 
   return session;
@@ -109,5 +131,19 @@ export async function logoutUser(): Promise<void> {
   }
   if (typeof window !== 'undefined') {
     localStorage.removeItem(STORAGE_KEY);
+    clearSessionCookie();
+  }
+}
+
+// Returns the auth token for API calls that require Authorization header
+export function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return null;
+    const parsed: UserSession = JSON.parse(stored);
+    return parsed?.token || null;
+  } catch {
+    return null;
   }
 }
