@@ -10,6 +10,13 @@ const PROJECTS_FILE = path.join(DATA_DIR, 'projects.json');
 const CHATS_FILE = path.join(DATA_DIR, 'chats.json');
 
 function ensureDataDir() {
+  if (process.env.NODE_ENV === 'production') {
+    console.error(
+      '⚠️ [STORAGE WARNING] Using local filesystem fallback in PRODUCTION. ' +
+      'This is NOT persistent on serverless platforms (Vercel, AWS Lambda). ' +
+      'Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to use Supabase instead.'
+    );
+  }
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
