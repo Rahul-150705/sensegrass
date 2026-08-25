@@ -1,20 +1,34 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import { Project } from '@/types';
+import { getCurrentUser, getAuthToken } from '@/lib/auth';
 import { Layers, Globe, Plus, Calendar, ArrowRight, Database, Code, Sparkles, Search, FolderOpen } from 'lucide-react';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    async function loadProjects() {
+    async function init() {
+      // Auth guard: redirect if not authenticated
+      const user = await getCurrentUser();
+      if (!user) {
+        router.push('/login?redirect=/dashboard');
+        return;
+      }
+
+      // Fetch only this user's projects with Authorization header
       try {
-        const res = await fetch('/api/projects');
+        const token = getAuthToken();
+        const res = await fetch('/api/projects', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         const data = await res.json();
         if (data.success && data.projects) {
           setProjects(data.projects);
@@ -25,8 +39,9 @@ export default function DashboardPage() {
         setLoading(false);
       }
     }
-    loadProjects();
-  }, []);
+    init();
+  }, [router]);
+
 
   const filtered = projects.filter((p) => {
     const q = search.toLowerCase();
