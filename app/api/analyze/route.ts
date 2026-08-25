@@ -2,20 +2,7 @@ import { NextResponse } from 'next/server';
 import { fetchAndExtractWebsiteContent } from '@/lib/scraper';
 import { analyzeWebsite } from '@/lib/ai';
 import { saveProject } from '@/lib/store';
-
-// Helper: extract userId from Bearer token (Supabase JWT sub claim)
-function extractUserId(authHeader: string | null): string | null {
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
-  try {
-    const payload = JSON.parse(
-      Buffer.from(token.split('.')[1], 'base64url').toString('utf8')
-    );
-    return payload?.sub || payload?.userId || null;
-  } catch {
-    return null;
-  }
-}
+import { verifyJWT } from '@/lib/supabase-admin';
 
 export async function POST(request: Request) {
   try {
@@ -29,9 +16,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Extract userId from session token so projects are owned by the user
+    // Extract and verify JWT token
     const authHeader = request.headers.get('Authorization');
-    const userId = extractUserId(authHeader);
+    let userId: string | undefined = undefined;
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      const verified = await verifyJWT(token);
+      if (verified) {
+        userId = verified.id;
+      }
+    }
 
     // Step 1: Extract webpage content server-side
     const scraped = await fetchAndExtractWebsiteContent(websiteUrl);
@@ -53,7 +47,7 @@ export async function POST(request: Request) {
     // Step 3: Save project tagged to the authenticated user
     const project = await saveProject({
       id: projectId,
-      userId: userId || undefined,
+      userId: userId,
       name: projectName,
       websiteUrl,
       description,
