@@ -16,9 +16,13 @@ CREATE TABLE IF NOT EXISTS public.projects (
     scraped_info JSONB,
     blueprint JSONB,
     ui_code TEXT,
+    generated_files JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Ensure generated_files column exists on existing installations
+ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS generated_files JSONB;
 
 -- Chat Messages Table
 CREATE TABLE IF NOT EXISTS public.chat_messages (
@@ -37,9 +41,11 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_project_id ON public.chat_messages(
 ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 
--- Permissive policies for development/testing
+-- Permissive policies for development & studio access
+DROP POLICY IF EXISTS "Allow public read/write access to projects" ON public.projects;
 CREATE POLICY "Allow public read/write access to projects" ON public.projects
     FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow public read/write access to chat_messages" ON public.chat_messages;
 CREATE POLICY "Allow public read/write access to chat_messages" ON public.chat_messages
     FOR ALL USING (true) WITH CHECK (true);

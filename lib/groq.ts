@@ -24,6 +24,7 @@ export async function analyzeWebsiteWithGroq(
 ): Promise<ProductAnalysis> {
   if (groq) {
     try {
+      console.log('🚀 [GROQ API REQUEST]: Sending text data & prompt to Groq (llama-3.3-70b-versatile)...');
       const prompt = `You are the Groq AI Product Analyst Agent powered by Llama 3.3 70B.
 Analyze this extracted website data and user vision to design a high-growth B2B SaaS product.
 
@@ -56,9 +57,10 @@ Respond ONLY with valid JSON matching this schema:
       });
 
       const content = response.choices[0]?.message?.content || '{}';
+      console.log('✅ [GROQ API SUCCESS]: Received structured analysis response from Groq!');
       return JSON.parse(content) as ProductAnalysis;
     } catch (err) {
-      console.error('Groq Analysis Error:', err);
+      console.error('❌ [GROQ API ERROR]:', err);
     }
   }
 
@@ -99,6 +101,7 @@ export async function generateBlueprintWithGroq(
 ): Promise<ProductBlueprint> {
   if (groq) {
     try {
+      console.log('🚀 [GROQ API REQUEST]: Generating SaaS Blueprint & Full-Stack File Tree Plan with Groq (llama-3.3-70b-versatile)...');
       const prompt = `You are the Groq AI Product Architect Agent.
 Generate a complete SaaS Product Blueprint and full-stack project file structure (both frontend and backend files).
 
@@ -147,6 +150,7 @@ Respond ONLY with valid JSON matching this schema:
       });
 
       const content = response.choices[0]?.message?.content || '{}';
+      console.log('✅ [GROQ API SUCCESS]: Generated full-stack architecture & file structure via Groq!');
       const parsed = JSON.parse(content);
 
       const files: ProjectFile[] = (parsed.fileTreePlan || []).map((f: any) => ({
