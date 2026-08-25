@@ -35,12 +35,13 @@ export async function POST(request: Request) {
       project.uiCode ||
       getDefaultStarterUICode(project.blueprint.productName, project.blueprint.tagline);
 
-    // Refine blueprint + code with Claude Agent
-    const { updatedBlueprint, updatedCode, assistantMessage } = await refineProduct(
+    // Refine blueprint + code + files with Claude Agent
+    const { updatedBlueprint, updatedCode, updatedFiles, assistantMessage } = await refineProduct(
       project.blueprint,
       currentCode,
       message,
-      chatHistory
+      chatHistory,
+      project.generatedFiles || project.blueprint.generatedFiles || undefined
     );
 
     // Save assistant response message
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
       name: updatedBlueprint.productName,
       blueprint: updatedBlueprint,
       uiCode: updatedCode,
+      generatedFiles: updatedFiles || project.generatedFiles,
     });
 
     return NextResponse.json({
@@ -59,6 +61,7 @@ export async function POST(request: Request) {
       projectId: updatedProject.id,
       blueprint: updatedProject.blueprint,
       uiCode: updatedProject.uiCode,
+      generatedFiles: updatedProject.generatedFiles,
       assistantMessage,
     });
   } catch (err: any) {

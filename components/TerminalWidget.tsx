@@ -131,12 +131,12 @@ export default function TerminalWidget({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+    <div className="bg-slate-900/90 border border-white/[0.08] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+      <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-            <Terminal className="w-5 h-5" />
+          <div className="w-8 h-8 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center text-indigo-400">
+            <Terminal className="w-4 h-4" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -148,10 +148,10 @@ export default function TerminalWidget({
       </div>
 
       {/* Location Input Form */}
-      <div className="space-y-2 bg-slate-950/80 border border-slate-800/80 p-4 rounded-2xl">
+      <div className="space-y-2 bg-slate-950/80 border border-white/[0.07] p-4 rounded-xl">
         <label className="text-xs font-bold text-slate-200 flex items-center space-x-2">
           <Folder className="w-4 h-4 text-indigo-400" />
-          <span>Enter Target Directory Path on Your System:</span>
+          <span>Target Directory Path on Disk:</span>
         </label>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
@@ -159,12 +159,12 @@ export default function TerminalWidget({
             value={targetDir}
             onChange={(e) => setTargetDir(e.target.value)}
             placeholder="c:\Users\Rahul.VASUNDRA\Desktop\MyGeneratedSaaS"
-            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none font-mono focus:border-indigo-500"
+            className="flex-1 bg-slate-900 border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none font-mono focus:border-indigo-500/60"
           />
           <button
             onClick={handleWriteFiles}
             disabled={isWriting || !targetDir.trim()}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs px-5 py-3 rounded-xl shadow-lg flex items-center justify-center space-x-2 shrink-0 disabled:opacity-50 transition-all"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md shadow-indigo-500/20 flex items-center justify-center space-x-2 shrink-0 disabled:opacity-50 transition-all active:scale-95"
           >
             {isWriting ? (
               <>
@@ -182,12 +182,12 @@ export default function TerminalWidget({
       </div>
 
       {/* Interactive CLI Console */}
-      <div className="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden font-mono text-xs shadow-inner">
-        <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex items-center justify-between text-[11px] text-slate-400">
-          <span className="flex items-center gap-2">
+      <div className="bg-slate-950 border border-white/[0.08] rounded-xl overflow-hidden font-mono text-xs shadow-inner">
+        <div className="bg-slate-900 border-b border-white/[0.06] px-3.5 py-2 flex items-center justify-between text-[10px] text-slate-400">
+          <span className="flex items-center gap-2 font-mono font-semibold">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span> TERMINAL CLI CONSOLE
           </span>
-          <span>bash / powershell</span>
+          <span>powershell / bash</span>
         </div>
         <div className="p-4 space-y-1.5 min-h-[160px] max-h-[260px] overflow-y-auto text-slate-300">
           {logs.map((log, idx) => (
@@ -210,7 +210,7 @@ export default function TerminalWidget({
       </div>
 
       {/* Self-Healing Health Verification Trigger */}
-      <div className="bg-slate-950/70 border border-slate-800/80 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="bg-slate-950/80 border border-white/[0.07] p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
         <div>
           <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -224,7 +224,7 @@ export default function TerminalWidget({
         <button
           onClick={handleVerifyServer}
           disabled={isVerifying}
-          className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs px-4 py-2.5 rounded-xl border border-slate-700 flex items-center space-x-2 shrink-0 transition-all disabled:opacity-50"
+          className="bg-slate-900 hover:bg-slate-850 text-slate-200 font-bold text-xs px-4 py-2.5 rounded-xl border border-white/10 flex items-center space-x-2 shrink-0 transition-all disabled:opacity-50"
         >
           {isVerifying ? (
             <>

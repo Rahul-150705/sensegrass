@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { ProductAnalysis, ProductBlueprint, ScrapedContent } from '@/types';
+import { ProductAnalysis, ProductBlueprint, ScrapedContent, ProjectFile } from '@/types';
 import { getDefaultStarterUICode } from '@/lib/openai';
 
 const anthropicApiKey = process.env.ANTHROPIC_API_KEY || '';
@@ -26,7 +26,7 @@ WEBSITE TITLE: ${scraped.title}
 META DESCRIPTION: ${scraped.description}
 HEADINGS: ${scraped.headings.join(' | ')}
 EXTRACTED CONTENT:
-${scraped.mainText}
+${scraped.mainText.slice(0, 3000)}
 
 USER VISION: ${userDescription}
 TARGET CUSTOMER: ${targetCustomer}
@@ -103,29 +103,24 @@ TARGET CUSTOMER: ${targetCustomer}
 
 Respond ONLY with valid JSON matching this schema:
 {
-  "productName": "Catchy SaaS name (e.g. FlowPulse, InsightHQ)",
-  "tagline": "Single sentence punchy tagline",
-  "description": "Comprehensive 2-3 sentence product overview",
+  "productName": "Product Name",
+  "tagline": "Short Tagline",
+  "description": "Comprehensive vision",
   "targetCustomer": "${targetCustomer}",
   "features": [
-    { "name": "Feature Name", "description": "Summary", "priority": "high" },
-    { "name": "Feature Name", "description": "Summary", "priority": "high" },
-    { "name": "Feature Name", "description": "Summary", "priority": "medium" }
+    { "name": "Feature 1", "description": "Details", "priority": "high" },
+    { "name": "Feature 2", "description": "Details", "priority": "medium" }
   ],
-  "navigation": ["Dashboard", "Analytics", "Reports", "Team", "Settings"],
+  "navigation": ["Dashboard", "Analytics", "Settings"],
   "pages": [
-    { "path": "/", "title": "Landing Page", "description": "Marketing showcase" },
-    { "path": "/dashboard", "title": "Main Dashboard", "description": "Central metrics overview" },
-    { "path": "/analytics", "title": "Analytics Hub", "description": "Data charts & telemetry" },
-    { "path": "/reports", "title": "Automated Reports", "description": "Scheduled exports" },
-    { "path": "/team", "title": "Team Workspace", "description": "Member invitations" },
-    { "path": "/settings", "title": "Settings", "description": "Billing & API keys" }
+    { "path": "/", "title": "Dashboard Page", "description": "Main Overview" },
+    { "path": "/api/v1/metrics", "title": "API Service", "description": "REST Endpoint" }
   ],
   "uiDirection": {
-    "style": "Modern B2B SaaS, Premium Dark Slate & Indigo Accents",
-    "colorScheme": "Indigo primary (#4F46E5), Slate background",
-    "typography": "Inter / Geist Sans",
-    "designKeywords": ["Data-focused", "Minimalist", "High-density metrics"]
+    "style": "Minimalist Developer Slate",
+    "colorScheme": "Deep Slate & Indigo",
+    "typography": "Inter / Mono",
+    "designKeywords": ["sleek", "modern"]
   }
 }`;
 
@@ -138,36 +133,30 @@ Respond ONLY with valid JSON matching this schema:
       const text = response.content[0]?.type === 'text' ? response.content[0].text : '{}';
       return JSON.parse(text) as ProductBlueprint;
     } catch (err) {
-      console.error('Claude Blueprint Agent Error:', err);
+      console.error('Claude Blueprint Error:', err);
     }
   }
 
-  // Fallback
   return {
-    productName: 'ClaudeFlow',
-    tagline: 'The AI-Powered Operational Platform for Growing Businesses',
-    description: `An intelligent B2B SaaS platform designed specifically for ${targetCustomer}. ClaudeFlow automates operational reporting, consolidates key metrics, and delivers real-time recommendations.`,
-    targetCustomer: targetCustomer || 'Small Business Owners',
+    productName: 'ClaudeSaaS Architect',
+    tagline: 'Autonomous AI Product Platform',
+    description: analysis.summary,
+    targetCustomer,
     features: [
-      { name: 'Executive Dashboard', description: 'Real-time metrics, revenue telemetry, and live KPIs.', priority: 'high' },
-      { name: 'AI Insights Engine', description: 'Anomaly detection and automated recommendations powered by Claude.', priority: 'high' },
-      { name: 'Smart Analytics Hub', description: 'Interactive chart drill-downs and retention metrics.', priority: 'high' },
-      { name: 'Automated Reports', description: 'Schedule automated PDF/CSV reports sent directly to stakeholders.', priority: 'medium' },
+      { name: 'Telemetry Dashboard', description: 'Real-time performance graphs and KPI metrics', priority: 'high' },
+      { name: 'Backend API Service', description: 'Automated REST JSON endpoints', priority: 'high' },
+      { name: 'Workspace Management', description: 'Granular user permission settings', priority: 'medium' },
     ],
-    navigation: ['Dashboard', 'Analytics', 'Reports', 'Team', 'Settings'],
+    navigation: ['Dashboard', 'Analytics', 'Settings'],
     pages: [
-      { path: '/', title: 'Landing Page', description: 'High-converting marketing product showcase' },
-      { path: '/dashboard', title: 'Main Dashboard', description: 'Real-time overview of key metrics' },
-      { path: '/analytics', title: 'Analytics Hub', description: 'Interactive telemetry & breakdown charts' },
-      { path: '/reports', title: 'Automated Reports', description: 'Scheduled PDF exports & client reporting' },
-      { path: '/team', title: 'Team Workspace', description: 'Collaborative role management' },
-      { path: '/settings', title: 'Settings & Billing', description: 'Subscription management & API keys' },
+      { path: '/', title: 'Dashboard', description: 'Main application metrics' },
+      { path: '/api/v1/data', title: 'Backend API', description: 'REST service' },
     ],
     uiDirection: {
-      style: 'Modern B2B SaaS, Premium Dark slate & Clean Minimalist layout',
-      colorScheme: 'Indigo primary (#4F46E5), Slate dark background, Emerald success accents',
-      typography: 'Clean Sans-serif, bold high-contrast metric headers',
-      designKeywords: ['Modern B2B', 'Claude AI Powered', 'Minimal', 'Data-focused'],
+      style: 'Minimalist Developer Slate',
+      colorScheme: 'Deep Slate',
+      typography: 'Inter',
+      designKeywords: ['sleek', 'fast'],
     },
   };
 }
@@ -175,42 +164,99 @@ Respond ONLY with valid JSON matching this schema:
 export async function generateStarterUICodeWithClaude(blueprint: ProductBlueprint): Promise<string> {
   if (anthropic) {
     try {
-      const prompt = `You are a Principal Frontend React Coding Agent.
-Generate a complete, modern React component for the main SaaS Dashboard of "${blueprint.productName}".
+      const prompt = `You are Claude Code Agent, a world-class React + Tailwind CSS UI Developer.
+Write complete, production-ready React component code for this SaaS product:
 
+PRODUCT NAME: ${blueprint.productName}
 TAGLINE: ${blueprint.tagline}
-UI DIRECTION: ${JSON.stringify(blueprint.uiDirection)}
+DESCRIPTION: ${blueprint.description}
+FEATURES: ${blueprint.features.map((f) => f.name).join(', ')}
 
-Create clean, beautiful React component code using Tailwind CSS styling (standard JSX format).
-Respond ONLY with JSON format: { "code": "component code string here" }`;
+RULES:
+1. Write a single complete React client component default export.
+2. Use Tailwind CSS with dark slate styling (bg-slate-950, text-white, border-white/10).
+3. Include Lucide icons (import { Activity, Layers, Shield, Zap, TrendingUp, Users, CheckCircle } from 'lucide-react').
+4. Do NOT wrap in markdown code blocks. Output ONLY raw code.`;
 
       const response = await anthropic.messages.create({
         model: CLAUDE_MODEL,
-        max_tokens: 3500,
+        max_tokens: 4000,
         messages: [{ role: 'user', content: prompt }],
       });
 
-      const text = response.content[0]?.type === 'text' ? response.content[0].text : '{}';
-      const parsed = JSON.parse(text);
-      if (parsed.code) return parsed.code;
+      const code = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      return code.trim().replace(/^```[a-z]*\n?/, '').replace(/\n?```$/, '');
     } catch (err) {
-      console.error('Claude Coding Agent Error:', err);
+      console.error('Claude UI Code Error:', err);
     }
   }
 
   return getDefaultStarterUICode(blueprint.productName, blueprint.tagline);
 }
 
+export async function generateFullStackCodeWithClaude(
+  blueprint: ProductBlueprint,
+  filesToGenerate: ProjectFile[]
+): Promise<ProjectFile[]> {
+  if (anthropic) {
+    try {
+      const prompt = `You are Claude Code Agent. You write full-stack code for modern web applications.
+Generate full, complete production implementation code for these frontend and backend files:
+
+PRODUCT NAME: ${blueprint.productName}
+TAGLINE: ${blueprint.tagline}
+DESCRIPTION: ${blueprint.description}
+
+FILES TO CODE:
+${filesToGenerate.map((f) => `- Path: ${f.path} (${f.type}, ${f.language})`).join('\n')}
+
+Respond ONLY with valid JSON matching this schema:
+{
+  "files": [
+    {
+      "path": "file/path.tsx",
+      "content": "Full complete code string"
+    }
+  ]
+}`;
+
+      const response = await anthropic.messages.create({
+        model: CLAUDE_MODEL,
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      const text = response.content[0]?.type === 'text' ? response.content[0].text : '{}';
+      const parsed = JSON.parse(text);
+
+      if (parsed.files && Array.isArray(parsed.files)) {
+        return filesToGenerate.map((origFile) => {
+          const generated = parsed.files.find((f: any) => f.path === origFile.path);
+          return {
+            ...origFile,
+            content: generated?.content || origFile.content,
+          };
+        });
+      }
+    } catch (err) {
+      console.error('Claude FullStack Generation Error:', err);
+    }
+  }
+
+  return filesToGenerate;
+}
+
 export async function refineWithClaude(
   currentBlueprint: ProductBlueprint,
   currentCode: string,
   userInstruction: string,
-  chatHistory: { role: string; content: string }[]
-): Promise<{ updatedBlueprint: ProductBlueprint; updatedCode: string; assistantMessage: string }> {
+  chatHistory: { role: string; content: string }[],
+  currentFiles?: ProjectFile[]
+): Promise<{ updatedBlueprint: ProductBlueprint; updatedCode: string; updatedFiles?: ProjectFile[]; assistantMessage: string }> {
   if (anthropic) {
     try {
-      const prompt = `You are a Claude AI Product Architect & Coding Agent.
-The user wants to modify the product blueprint and live UI code.
+      const prompt = `You are Claude Code Agent & AI Copilot.
+The user wants to modify the product blueprint, full-stack files, and live UI code.
 
 CURRENT BLUEPRINT:
 ${JSON.stringify(currentBlueprint, null, 2)}
@@ -221,8 +267,9 @@ USER INSTRUCTION:
 Respond ONLY with valid JSON:
 {
   "updatedBlueprint": modified ProductBlueprint JSON,
-  "updatedCode": modified React UI code string,
-  "assistantMessage": brief summary message explaining updates
+  "updatedCode": modified main React UI code string,
+  "updatedFiles": optional array of modified ProjectFile objects [{ "path": "app/page.tsx", "content": "..." }],
+  "assistantMessage": brief friendly summary explaining updates
 }`;
 
       const formattedMessages = chatHistory.map((m) => ({
@@ -243,6 +290,7 @@ Respond ONLY with valid JSON:
         return {
           updatedBlueprint: result.updatedBlueprint,
           updatedCode: result.updatedCode || currentCode,
+          updatedFiles: result.updatedFiles || currentFiles,
           assistantMessage: result.assistantMessage,
         };
       }
@@ -264,6 +312,7 @@ Respond ONLY with valid JSON:
   return {
     updatedBlueprint: updatedBp,
     updatedCode: getDefaultStarterUICode(updatedBp.productName, updatedBp.tagline, isEnterprise),
-    assistantMessage: `Updated ${updatedBp.productName} blueprint and live UI preview with Claude Agent.`,
+    updatedFiles: currentFiles,
+    assistantMessage: `Updated ${updatedBp.productName} blueprint and files with Claude Code Agent.`,
   };
 }

@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate Product Blueprint with Claude Agent
+    // Step 2 & 3: Generate Blueprint (Groq API) + Fullstack File Code (Claude Code Agent)
     const blueprint = await generateBlueprint(
       existingProject.analysis,
       existingProject.description,
@@ -31,12 +31,14 @@ export async function POST(request: Request) {
       id: projectId,
       name: blueprint.productName || existingProject.name,
       blueprint,
+      generatedFiles: blueprint.generatedFiles || existingProject.generatedFiles,
     });
 
     return NextResponse.json({
       success: true,
       projectId: updatedProject.id,
       blueprint: updatedProject.blueprint,
+      generatedFiles: updatedProject.generatedFiles,
     });
   } catch (err: any) {
     console.error('API /api/build error:', err);

@@ -38,6 +38,14 @@ export interface UIDirection {
   designKeywords: string[];
 }
 
+export interface ProjectFile {
+  path: string;
+  name: string;
+  type: 'frontend' | 'backend' | 'config';
+  language: string;
+  content: string;
+}
+
 export interface ProductBlueprint {
   productName: string;
   tagline: string;
@@ -47,6 +55,7 @@ export interface ProductBlueprint {
   navigation: string[];
   pages: BlueprintPage[];
   uiDirection: UIDirection;
+  generatedFiles?: ProjectFile[];
 }
 
 export interface ChatMessage {
@@ -68,6 +77,7 @@ export interface Project {
   scrapedInfo?: ScrapedContent | null;
   blueprint?: ProductBlueprint | null;
   uiCode?: string | null;
+  generatedFiles?: ProjectFile[] | null;
   chatHistory?: ChatMessage[];
   createdAt: string;
   updatedAt: string;

@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { ProductAnalysis, ProductBlueprint, ScrapedContent } from '@/types';
+import { ProductAnalysis, ProductBlueprint, ScrapedContent, ProjectFile } from '@/types';
 
 const apiKey = process.env.OPENAI_API_KEY || '';
 export const isOpenAIConfigured = Boolean(apiKey && apiKey !== 'your_openai_api_key_here');
@@ -237,12 +237,13 @@ export async function refineWithAI(
   currentBlueprint: ProductBlueprint,
   currentCode: string,
   userInstruction: string,
-  chatHistory: { role: string; content: string }[]
-): Promise<{ updatedBlueprint: ProductBlueprint; updatedCode: string; assistantMessage: string }> {
+  chatHistory: { role: string; content: string }[],
+  currentFiles?: ProjectFile[]
+): Promise<{ updatedBlueprint: ProductBlueprint; updatedCode: string; updatedFiles?: ProjectFile[]; assistantMessage: string }> {
   if (openai) {
     try {
-      const prompt = `You are an AI Product Architect and Coding Agent.
-The user wants to refine the product blueprint and working starter UI code.
+      const prompt = `You are a senior AI product architect and UI engineer.
+The user wants to refine the product blueprint and live UI code.
 
 CURRENT BLUEPRINT:
 ${JSON.stringify(currentBlueprint, null, 2)}
@@ -250,26 +251,33 @@ ${JSON.stringify(currentBlueprint, null, 2)}
 USER INSTRUCTION:
 "${userInstruction}"
 
-Return a JSON object with:
-1. "updatedBlueprint": full modified ProductBlueprint JSON
-2. "updatedCode": modified starter UI code
-3. "assistantMessage": brief summary of updates made for the user chat view`;
+Respond ONLY with valid JSON:
+{
+  "updatedBlueprint": modified ProductBlueprint JSON object,
+  "updatedCode": modified React UI code string,
+  "assistantMessage": brief summary message explaining updates
+}`;
+
+      const formattedMessages = chatHistory.map((m) => ({
+        role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+        content: m.content,
+      }));
 
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
-        messages: [
-          ...chatHistory.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-          { role: 'user', content: prompt },
-        ],
+        messages: [...formattedMessages, { role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
         temperature: 0.7,
       });
 
-      const result = JSON.parse(response.choices[0]?.message?.content || '{}');
+      const content = response.choices[0]?.message?.content || '{}';
+      const result = JSON.parse(content);
+
       if (result.updatedBlueprint && result.assistantMessage) {
         return {
           updatedBlueprint: result.updatedBlueprint,
           updatedCode: result.updatedCode || currentCode,
+          updatedFiles: currentFiles,
           assistantMessage: result.assistantMessage,
         };
       }
@@ -317,6 +325,7 @@ Return a JSON object with:
   return {
     updatedBlueprint: updatedBp,
     updatedCode: getDefaultStarterUICode(updatedBp.productName, updatedBp.tagline, lowerMsg.includes('enterprise') || lowerMsg.includes('premium')),
+    updatedFiles: currentFiles,
     assistantMessage: summary,
   };
 }
