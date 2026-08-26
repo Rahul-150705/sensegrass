@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { generateBlueprint } from '@/lib/ai';
 import { getProjectById, saveProject } from '@/lib/store';
+import { getAuthenticatedUser } from '@/lib/auth-server';
 
 export async function POST(request: Request) {
   try {
+    const user = await getAuthenticatedUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { projectId } = body;
 
@@ -12,7 +18,10 @@ export async function POST(request: Request) {
     }
 
     const existingProject = await getProjectById(projectId);
-    if (!existingProject || !existingProject.analysis) {
+    if (!existingProject || existingProject.userId !== user.id) {
+      return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
+    }
+    if (!existingProject.analysis) {
       return NextResponse.json(
         { error: 'Project analysis not found. Please analyze first.' },
         { status: 404 }

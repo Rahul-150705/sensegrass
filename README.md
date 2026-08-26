@@ -129,7 +129,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `GROQ_API_KEY` | ✅ Yes | Groq API key for Llama 3.3 70B (primary AI engine) |
 | `ANTHROPIC_API_KEY` | ⚡ Recommended | Claude 3.5 Sonnet for full-stack code generation |
 | `OPENAI_API_KEY` | Optional | OpenAI fallback if Claude is not configured |
-| `SUPABASE_SERVICE_ROLE_KEY` | Optional | For server-side admin Supabase operations |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ Yes (if using Supabase) | Verifies user JWTs server-side and bypasses RLS for authorized API access. Without it, all authenticated routes reject requests. |
 
 ---
 

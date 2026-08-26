@@ -1,20 +1,48 @@
 import { NextResponse } from 'next/server';
 import { refineProduct } from '@/lib/ai';
 import { getProjectById, saveProject } from '@/lib/store';
+import { getAuthenticatedUser } from '@/lib/auth-server';
+
+// This endpoint only exists to health-check a locally running dev server for
+// the CLI-exported project, so we hard-restrict it to loopback addresses —
+// otherwise a client-supplied `url` would let the server fetch arbitrary
+// internal/external hosts (SSRF).
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 
 export async function POST(request: Request) {
   try {
+    const user = await getAuthenticatedUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { projectId, url } = body;
 
     const checkUrl = url || 'http://localhost:3000';
+
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(checkUrl);
+    } catch {
+      return NextResponse.json({ error: 'Invalid URL.' }, { status: 400 });
+    }
+    if (!LOOPBACK_HOSTS.has(parsedUrl.hostname.toLowerCase())) {
+      return NextResponse.json(
+        { error: 'Only localhost URLs may be verified.' },
+        { status: 400 }
+      );
+    }
 
     if (!projectId) {
       return NextResponse.json({ error: 'Project ID is required.' }, { status: 400 });
     }
 
     const project = await getProjectById(projectId);
-    if (!project || !project.blueprint) {
+    if (!project || project.userId !== user.id) {
+      return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
+    }
+    if (!project.blueprint) {
       return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
     }
 

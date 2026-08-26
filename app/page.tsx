@@ -18,7 +18,7 @@ import {
   ShieldCheck,
   Cpu,
 } from 'lucide-react';
-import { getCurrentUser, UserSession } from '@/lib/auth';
+import { getCurrentUser, getAuthToken, UserSession } from '@/lib/auth';
 
 const PRESET_WEBSITES = [
   {
@@ -89,14 +89,17 @@ export default function Home() {
     try {
       setTimeout(() => setStep(2), 1200);
 
+      const token = getAuthToken();
       const res = await fetch('/api/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           websiteUrl,
           description,
           targetCustomer,
-          userId: user.id,
         }),
       });
 

@@ -2,10 +2,18 @@ import { NextResponse } from 'next/server';
 import { fetchAndExtractWebsiteContent } from '@/lib/scraper';
 import { analyzeWebsite } from '@/lib/ai';
 import { saveProject } from '@/lib/store';
-import { verifyJWT } from '@/lib/supabase-admin';
+import { getAuthenticatedUser } from '@/lib/auth-server';
 
 export async function POST(request: Request) {
   try {
+    const user = await getAuthenticatedUser(request);
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please log in.' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { websiteUrl, description, targetCustomer } = body;
 
@@ -14,17 +22,6 @@ export async function POST(request: Request) {
         { error: 'Website URL and description are required.' },
         { status: 400 }
       );
-    }
-
-    // Extract and verify JWT token
-    const authHeader = request.headers.get('Authorization');
-    let userId: string | undefined = undefined;
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.slice(7);
-      const verified = await verifyJWT(token);
-      if (verified) {
-        userId = verified.id;
-      }
     }
 
     // Step 1: Extract webpage content server-side
@@ -47,7 +44,7 @@ export async function POST(request: Request) {
     // Step 3: Save project tagged to the authenticated user
     const project = await saveProject({
       id: projectId,
-      userId: userId,
+      userId: user.id,
       name: projectName,
       websiteUrl,
       description,

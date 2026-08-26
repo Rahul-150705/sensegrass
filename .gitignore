@@ -30,6 +30,7 @@ lerna-debug.log*
 # local persistent cache
 /.data/
 /.cache/
+/.exports/
 
 # OS metadata
 .DS_Store

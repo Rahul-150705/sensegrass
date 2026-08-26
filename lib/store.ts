@@ -1,8 +1,18 @@
 // Server-only storage module — DO NOT import from client components
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabaseAdmin, isAdminConfigured } from '@/lib/supabase-admin';
 import { Project, ChatMessage } from '@/types';
 import fs from 'fs';
 import path from 'path';
+
+// Row Level Security policies require auth.uid() = user_id, but server routes
+// never attach an end-user Supabase session — they authenticate the caller
+// themselves via verifyJWT() and enforce ownership in the route handlers.
+// Querying with the anon key here would therefore have auth.uid() = NULL and
+// RLS would silently return/write zero rows. Use the service-role client
+// (which bypasses RLS) whenever it's configured.
+const db = isAdminConfigured ? supabaseAdmin : supabase;
+const isDbConfigured = isAdminConfigured || isSupabaseConfigured;
 
 // ─── Persistent JSON File Fallback (when Supabase is offline) ───────────────
 const DATA_DIR = path.join(process.cwd(), '.data');
@@ -46,9 +56,9 @@ function writeChatsFile(data: Record<string, ChatMessage[]>) {
 export async function saveProject(project: Partial<Project> & { id: string }): Promise<Project> {
   const now = new Date().toISOString();
 
-  if (isSupabaseConfigured && supabase) {
+  if (isDbConfigured && db) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('projects')
         .upsert({
           id: project.id,
@@ -114,16 +124,16 @@ export async function saveProject(project: Partial<Project> & { id: string }): P
 
 // ─── Get Project By ID ──────────────────────────────────────────────────────────
 export async function getProjectById(id: string): Promise<Project | null> {
-  if (isSupabaseConfigured && supabase) {
+  if (isDbConfigured && db) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('projects')
         .select('*')
         .eq('id', id)
         .single();
 
       if (!error && data) {
-        const { data: chatData } = await supabase
+        const { data: chatData } = await db
           .from('chat_messages')
           .select('*')
           .eq('project_id', id)
@@ -169,9 +179,9 @@ export async function getProjectById(id: string): Promise<Project | null> {
 
 // ─── Get All Projects ───────────────────────────────────────────────────────────
 export async function getAllProjects(userId?: string): Promise<Project[]> {
-  if (isSupabaseConfigured && supabase) {
+  if (isDbConfigured && db) {
     try {
-      let query = supabase
+      let query = db
         .from('projects')
         .select('*')
         .order('updated_at', { ascending: false });
@@ -218,9 +228,9 @@ export async function addChatMessage(
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
 
-  if (isSupabaseConfigured && supabase) {
+  if (isDbConfigured && db) {
     try {
-      const { data } = await supabase
+      const { data } = await db
         .from('chat_messages')
         .insert({ id, project_id: projectId, role, content, created_at: now })
         .select()

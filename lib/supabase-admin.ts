@@ -24,20 +24,13 @@ export async function verifyJWT(token: string): Promise<{
   email: string;
 } | null> {
   if (!supabaseAdmin) {
-    // Fallback: decode payload without signature verification (dev only)
-    try {
-      const payload = JSON.parse(
-        Buffer.from(token.split('.')[1], 'base64url').toString('utf8')
-      );
-      if (!payload?.sub) return null;
-      // Check expiry
-      if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-        return null; // Token expired
-      }
-      return { id: payload.sub, email: payload.email || '' };
-    } catch {
-      return null;
-    }
+    // Fail closed: without a service role key we cannot cryptographically verify
+    // the token's signature, so we must not trust an unverified payload as identity.
+    console.error(
+      '⚠️ [AUTH] SUPABASE_SERVICE_ROLE_KEY is not set — cannot verify JWTs. ' +
+      'All authenticated requests will be rejected until it is configured.'
+    );
+    return null;
   }
 
   try {

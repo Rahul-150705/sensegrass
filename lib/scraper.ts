@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { assertPublicHostname } from '@/lib/net-guard';
 
 export interface ScrapedContent {
   url: string;
@@ -14,6 +15,16 @@ export async function fetchAndExtractWebsiteContent(urlInput: string): Promise<S
   let targetUrl = urlInput.trim();
   if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
     targetUrl = 'https://' + targetUrl;
+  }
+
+  try {
+    const parsed = new URL(targetUrl);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return getFallbackContent(targetUrl, 'Only http/https URLs are allowed.');
+    }
+    await assertPublicHostname(parsed.hostname);
+  } catch (err: any) {
+    return getFallbackContent(targetUrl, err?.message || 'Invalid or disallowed URL.');
   }
 
   try {

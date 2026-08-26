@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Terminal, Folder, Play, Check, ShieldCheck, RefreshCw, AlertTriangle, ArrowRight } from 'lucide-react';
+import { getAuthToken } from '@/lib/auth';
 
 interface TerminalWidgetProps {
   projectId: string;
@@ -16,7 +17,9 @@ export default function TerminalWidget({
   uiCode,
   blueprint,
 }: TerminalWidgetProps) {
-  const [targetDir, setTargetDir] = useState('c:\\Users\\Rahul.VASUNDRA\\Desktop\\MyGeneratedSaaS');
+  const [targetDir, setTargetDir] = useState(
+    productName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'my-generated-saas'
+  );
   const [isWriting, setIsWriting] = useState(false);
   const [writeResult, setWriteResult] = useState<any>(null);
   const [logs, setLogs] = useState<string[]>([
@@ -69,9 +72,13 @@ export default function TerminalWidget({
         },
       ];
 
+      const token = getAuthToken();
       const res = await fetch('/api/write-files', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ targetDir, files: filesPayload }),
       });
 
@@ -100,9 +107,13 @@ export default function TerminalWidget({
     setLogs((prev) => [...prev, '$ Testing server verification on http://localhost:3000...']);
 
     try {
+      const token = getAuthToken();
       const res = await fetch('/api/verify-app', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ projectId, url: 'http://localhost:3000' }),
       });
 
@@ -151,14 +162,17 @@ export default function TerminalWidget({
       <div className="space-y-2 bg-slate-950/80 border border-white/[0.07] p-4 rounded-xl">
         <label className="text-xs font-bold text-slate-200 flex items-center space-x-2">
           <Folder className="w-4 h-4 text-indigo-400" />
-          <span>Target Directory Path on Disk:</span>
+          <span>Export Folder Name:</span>
         </label>
+        <p className="text-[11px] text-slate-500 -mt-1">
+          Files are written to a sandboxed <code className="text-indigo-300 font-mono">.exports/</code> directory on the server under this folder name.
+        </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
             value={targetDir}
             onChange={(e) => setTargetDir(e.target.value)}
-            placeholder="c:\Users\Rahul.VASUNDRA\Desktop\MyGeneratedSaaS"
+            placeholder="my-generated-saas"
             className="flex-1 bg-slate-900 border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none font-mono focus:border-indigo-500/60"
           />
           <button

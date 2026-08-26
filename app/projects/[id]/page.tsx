@@ -12,7 +12,13 @@ import TerminalWidget from '@/components/TerminalWidget';
 import VSCodeEditor from '@/components/VSCodeEditor';
 import { Project, ChatMessage, ProjectFile } from '@/types';
 import { getDefaultFullStackFiles } from '@/lib/groq';
+import { getAuthToken } from '@/lib/auth';
 import { Layers, Eye, Database, Globe, ArrowLeft, Terminal, Sparkles, CheckCircle2, Play, Code } from 'lucide-react';
+
+function authHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 export default function ProjectStudioPage() {
   const params = useParams();
@@ -33,7 +39,9 @@ export default function ProjectStudioPage() {
   const fetchProject = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/projects/${projectId}`);
+      const res = await fetch(`/api/projects/${projectId}`, {
+        headers: authHeaders(),
+      });
       const data = await res.json();
 
       if (!res.ok || !data.success || !data.project) {
@@ -78,7 +86,7 @@ export default function ProjectStudioPage() {
     try {
       const res = await fetch('/api/build', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ projectId }),
       });
       const data = await res.json();
@@ -114,7 +122,7 @@ export default function ProjectStudioPage() {
     try {
       const res = await fetch('/api/generate-ui', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ projectId }),
       });
       const data = await res.json();
@@ -150,7 +158,7 @@ export default function ProjectStudioPage() {
     try {
       const res = await fetch('/api/refine', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ projectId, message: userMsg }),
       });
       const data = await res.json();
