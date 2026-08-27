@@ -1,9 +1,10 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { loginUser, signupUser, getCurrentUser } from '@/lib/auth';
-import { ArrowRight, Lock, Mail, User, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 function LoginPageInner() {
   const router = useRouter();
@@ -21,9 +22,7 @@ function LoginPageInner() {
 
   useEffect(() => {
     getCurrentUser().then((user) => {
-      if (user) {
-        router.push(redirectTo);
-      }
+      if (user) router.push(redirectTo);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
@@ -31,20 +30,15 @@ function LoginPageInner() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
-
     setLoading(true);
     setError(null);
     setInfoMessage(null);
-
     try {
-      if (isSignUp) {
-        await signupUser(email, password, name);
-      } else {
-        await loginUser(email, password);
-      }
+      if (isSignUp) await signupUser(email, password, name);
+      else await loginUser(email, password);
       router.push(redirectTo);
     } catch (err: any) {
-      const message = err?.message || 'Authentication failed. Please check your credentials.';
+      const message = err?.message || 'Authentication failed. Check your credentials.';
       if (message.toLowerCase().includes('check your email')) {
         setInfoMessage(message);
         setIsSignUp(false);
@@ -57,162 +51,116 @@ function LoginPageInner() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex text-neutral-100 selection:bg-cyan-400 selection:text-neutral-950">
-      {/* ── Left: Editorial brand panel ─────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[46%] relative flex-col justify-between overflow-hidden border-r border-white/[0.06] p-12 xl:p-16">
-        <div className="absolute inset-0 bg-dot-grid opacity-40" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-cyan-400/10 blur-[120px] rounded-full pointer-events-none" />
-        <div className="absolute top-0 right-0 w-px h-full bg-gradient-to-b from-transparent via-cyan-400/20 to-transparent" />
+    <div className="min-h-screen bg-ink text-bone flex flex-col md:flex-row selection:bg-molten selection:text-ink">
+      {/* ── left — brand panel ─────────────────────────────────── */}
+      <div className="md:w-[44%] border-b md:border-b-0 md:border-r border-line p-6 sm:p-10 md:p-14 flex flex-col justify-between">
+        <Link href="/" className="flex items-center gap-2.5 w-fit hover:opacity-70 transition-opacity">
+          <span className="w-5 h-5 bg-molten" />
+          <span className="font-mono font-bold text-[11px] tracking-[0.28em] uppercase">Recast</span>
+        </Link>
 
-        <div className="relative z-10 flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-md bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20">
-            <Sparkles className="w-4 h-4 text-neutral-950" />
-          </div>
-          <span className="font-mono font-bold text-sm tracking-widest uppercase text-neutral-100">Recast</span>
-        </div>
-
-        <div className="relative z-10 space-y-6">
-          <h1 className="font-display text-6xl xl:text-7xl leading-[0.95] text-neutral-50">
-            Scrape.
-            <br />
-            <span className="italic text-cyan-400">Build.</span>
-            <br />
-            Ship.
+        <div className="py-12 md:py-0">
+          <span className="section-num">01 — ACCESS</span>
+          <h1 className="display-xl font-display text-[2.4rem] sm:text-[3.4rem] mt-3">
+            Scrape.<br />Recast.<br /><span className="text-molten">Ship.</span>
           </h1>
-          <p className="text-sm text-neutral-400 max-w-xs leading-relaxed">
-            The autonomous AI studio that turns any website into a working, deployable SaaS product.
+          <p className="mt-5 max-w-xs text-[13px] text-steel leading-relaxed">
+            The studio that reads a live website and recasts it into a product — argued with you at every stage.
           </p>
         </div>
 
-        <div className="relative z-10 text-[11px] font-mono text-neutral-600 tracking-wide">
-          © {new Date().getFullYear()} RECAST — GROQ-POWERED MULTI-AGENT ENGINE
-        </div>
+        <span className="mono-label !text-[9px]">© {new Date().getFullYear()} — GROQ / GPT-OSS-120B</span>
       </div>
 
-      {/* ── Right: Auth form ─────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 relative">
-        <div className="absolute inset-0 bg-dot-grid opacity-[0.15] lg:hidden" />
+      {/* ── right — form ──────────────────────────────────────── */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-sm">
+          <span className="section-num">{isSignUp ? '02 — NEW OPERATOR' : '02 — SIGN IN'}</span>
+          <h2 className="font-display text-2xl font-semibold text-bone mt-2 mb-8">
+            {isSignUp ? 'Create your studio account' : 'Sign in to the studio'}
+          </h2>
 
-        <div className="relative z-10 w-full max-w-sm space-y-8">
-          {/* Mobile-only logo */}
-          <div className="flex items-center space-x-3 lg:hidden">
-            <div className="w-8 h-8 rounded-md bg-cyan-400 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-neutral-950" />
-            </div>
-            <span className="font-mono font-bold text-xs tracking-widest uppercase">Recast</span>
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-[11px] font-mono font-bold tracking-[0.2em] uppercase text-cyan-400">
-              Studio Access
-            </span>
-            <h2 className="font-display text-3xl sm:text-4xl text-neutral-50 leading-tight">
-              {isSignUp ? (
-                <>Create your <span className="italic text-cyan-400">studio</span> account</>
-              ) : (
-                <>Sign in to your <span className="italic text-cyan-400">studio</span></>
-              )}
-            </h2>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {isSignUp && (
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-[0.15em] flex items-center gap-1.5">
-                  <User className="w-3 h-3" />
-                  Full Name
-                </label>
+              <label className="block">
+                <span className="mono-label">Full name</span>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Alex Rivera"
-                  className="w-full bg-neutral-900/60 border border-white/[0.1] focus:border-cyan-400/60 rounded-md px-4 py-3 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none transition-colors font-mono"
+                  placeholder="alex rivera"
+                  className="cast-input w-full mt-2 py-2 text-sm"
                 />
-              </div>
+              </label>
             )}
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-[0.15em] flex items-center gap-1.5">
-                <Mail className="w-3 h-3" />
-                Email
-              </label>
+            <label className="block">
+              <span className="mono-label">Email</span>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="w-full bg-neutral-900/60 border border-white/[0.1] focus:border-cyan-400/60 rounded-md px-4 py-3 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none transition-colors font-mono"
+                className="cast-input w-full mt-2 py-2 text-sm"
               />
-            </div>
+            </label>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-[0.15em] flex items-center gap-1.5">
-                <Lock className="w-3 h-3" />
-                Password
-              </label>
-              <div className="relative">
+            <label className="block">
+              <span className="mono-label">Password</span>
+              <div className="relative mt-2">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-neutral-900/60 border border-white/[0.1] focus:border-cyan-400/60 rounded-md px-4 py-3 pr-11 text-sm text-neutral-100 placeholder-neutral-600 focus:outline-none transition-colors font-mono"
+                  className="cast-input w-full py-2 pr-8 text-sm"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
                   tabIndex={-1}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 text-steel hover:text-bone transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-            </div>
+            </label>
 
             {error && (
-              <div className="p-3 bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs rounded-md flex items-center gap-2 font-mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0"></span>
-                <span>{error}</span>
-              </div>
+              <p className="mono-label !text-molten !tracking-normal !text-[11px]">! {error}</p>
             )}
-
             {infoMessage && (
-              <div className="p-3 bg-cyan-400/10 border border-cyan-400/25 text-cyan-300 text-xs rounded-md flex items-center gap-2 font-mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0"></span>
-                <span>{infoMessage}</span>
-              </div>
+              <p className="mono-label !tracking-normal !text-[11px] !text-bone">→ {infoMessage}</p>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-cyan-400 hover:bg-cyan-300 text-neutral-950 font-mono font-bold text-xs uppercase tracking-[0.15em] py-3.5 rounded-md shadow-lg shadow-cyan-400/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-60 active:scale-[0.99]"
+              className="group w-full inline-flex items-center justify-center gap-3 bg-molten text-ink py-3 font-mono font-bold text-xs uppercase tracking-[0.14em] disabled:opacity-40 transition-opacity"
             >
               {loading ? (
-                <div className="w-4 h-4 rounded-full border-2 border-neutral-950/30 border-t-neutral-950 animate-spin"></div>
+                <span className="w-3.5 h-3.5 border-2 border-ink/30 border-t-ink rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>{isSignUp ? 'Create Account' : 'Authenticate'}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  {isSignUp ? 'Create account' : 'Sign in'}
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" strokeWidth={2.75} />
                 </>
               )}
             </button>
           </form>
 
-          <div className="text-center pt-2 border-t border-white/[0.06] text-xs text-neutral-500 font-mono">
-            {isSignUp ? 'Already have access?' : 'No account yet?'}{' '}
+          <div className="mt-6 rule-t border-line pt-4">
             <button
               onClick={() => {
-                setIsSignUp(!isSignUp);
+                setIsSignUp((v) => !v);
                 setError(null);
                 setInfoMessage(null);
               }}
-              className="text-cyan-400 hover:text-cyan-300 font-bold underline underline-offset-2 ml-1"
+              className="mono-label hover:text-molten transition-colors"
             >
-              {isSignUp ? 'Sign In' : 'Request Access'}
+              {isSignUp ? '← have an account? sign in' : "no account? request access →"}
             </button>
           </div>
         </div>
@@ -225,8 +173,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-neutral-950">
-          <div className="w-8 h-8 border-2 border-cyan-400/20 border-t-cyan-400 rounded-full animate-spin"></div>
+        <div className="min-h-screen flex items-center justify-center bg-ink">
+          <div className="w-6 h-6 border-2 border-line border-t-molten rounded-full animate-spin" />
         </div>
       }
     >
