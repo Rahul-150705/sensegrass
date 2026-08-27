@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Terminal, Folder, Play, Check, ShieldCheck, RefreshCw, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Terminal, Folder, Play, ShieldCheck, RefreshCw, Download } from 'lucide-react';
 import { getAuthToken } from '@/lib/auth';
 
 interface TerminalWidgetProps {
@@ -29,6 +29,60 @@ export default function TerminalWidget({
 
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState<any>(null);
+
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [runMd, setRunMd] = useState('');
+  const [isFetchingRun, setIsFetchingRun] = useState(false);
+
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    setLogs((p) => [...p, '$ Building codebase archive…']);
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ projectId }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `Export failed (HTTP ${res.status})`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${targetDir || 'recast-export'}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      setLogs((p) => [...p, `✓ Downloaded ${targetDir || 'recast-export'}.zip (${(blob.size / 1024).toFixed(1)} KB)`]);
+    } catch (e: any) {
+      setLogs((p) => [...p, `[ERROR]: ${e?.message || 'Download failed'}`]);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const fetchRunInstructions = async () => {
+    setIsFetchingRun(true);
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/run-instructions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ projectId }),
+      });
+      const d = await res.json();
+      if (!res.ok || !d.success) throw new Error(d.error || 'Failed to get instructions.');
+      setRunMd(d.instructions);
+    } catch (e: any) {
+      setRunMd(`Could not fetch run instructions — ${e?.message || 'error'}.`);
+    } finally {
+      setIsFetchingRun(false);
+    }
+  };
 
   const handleWriteFiles = async () => {
     if (!targetDir.trim()) return;
@@ -147,19 +201,56 @@ export default function TerminalWidget({
     <div className="panel recast-in">
       <div className="rule-b border-line p-4 sm:p-5">
         <span className="section-num">05 — EXPORT</span>
-        <h3 className="font-display text-lg font-semibold text-bone mt-1.5">Write to disk &amp; verify</h3>
-        <p className="text-[12px] text-steel mt-0.5">Local-only — files land in a sandboxed <code className="text-molten">.exports/</code> folder on your machine.</p>
+        <h3 className="font-display text-lg font-semibold text-bone mt-1.5">Take the codebase</h3>
+        <p className="text-[12px] text-steel mt-0.5">Download every generated file as a .zip — works here and on the deployed app.</p>
       </div>
       <div className="p-4 sm:p-5 space-y-5">
 
-      {/* Location Input Form */}
+      {/* Download the whole codebase */}
+      <div className="border border-line p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div className="mono-label !text-bone">DOWNLOAD .ZIP</div>
+          <p className="text-[12px] text-steel mt-1">
+            All generated files + <code className="text-molten">RUN.md</code> + README. Nothing is written to a server.
+          </p>
+        </div>
+        <button
+          onClick={handleDownload}
+          disabled={isDownloading}
+          className="bg-molten hover:opacity-90 text-ink px-5 py-2.5 font-mono font-bold text-[10px] uppercase tracking-[0.14em] flex items-center justify-center gap-2 shrink-0 disabled:opacity-40 transition-opacity"
+        >
+          {isDownloading ? 'Zipping…' : 'Download .zip'}
+          <Download className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* How to run it — Groq */}
+      <div className="border border-line p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="mono-label !text-bone">HOW TO RUN IT</div>
+          <button
+            onClick={fetchRunInstructions}
+            disabled={isFetchingRun}
+            className="mono-label hover:text-molten disabled:opacity-40 transition-colors"
+          >
+            {isFetchingRun ? 'asking groq…' : runMd ? 'refresh' : 'get instructions →'}
+          </button>
+        </div>
+        {runMd && (
+          <pre className="bg-ink border border-line p-3 text-[11px] font-mono text-bone/90 whitespace-pre-wrap overflow-auto leading-relaxed max-h-[320px]">
+{runMd}
+          </pre>
+        )}
+      </div>
+
+      {/* Local-only disk export */}
       <div className="space-y-2 bg-ink border border-line p-4 rounded-none">
-        <label className="text-xs font-bold text-bone flex items-center space-x-2">
-          <Folder className="w-4 h-4 text-molten" />
-          <span>Export Folder Name:</span>
+        <label className="mono-label !text-bone flex items-center gap-2">
+          <Folder className="w-3.5 h-3.5 text-molten" />
+          Write to disk — local dev only
         </label>
-        <p className="text-[11px] text-steel -mt-1">
-          Files are written to a sandboxed <code className="text-molten font-mono">.exports/</code> directory on the server under this folder name.
+        <p className="text-[11px] text-steel">
+          Writes into a sandboxed <code className="text-molten font-mono">.exports/</code> folder on the machine running the app. Returns 501 on a deployed server — use the .zip instead.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
@@ -172,19 +263,9 @@ export default function TerminalWidget({
           <button
             onClick={handleWriteFiles}
             disabled={isWriting || !targetDir.trim()}
-            className="bg-molten hover:opacity-90 text-ink font-bold text-xs px-5 py-2.5 rounded-none  flex items-center justify-center space-x-2 shrink-0 disabled:opacity-50 transition-all active:scale-95"
+            className="bg-ink-soft hover:bg-ink-2 text-bone border border-line font-mono font-bold text-[10px] uppercase tracking-[0.12em] px-4 py-2.5 rounded-none flex items-center justify-center gap-2 shrink-0 disabled:opacity-50 transition-colors"
           >
-            {isWriting ? (
-              <>
-                <div className="w-3.5 h-3.5 rounded-full border-2 border-ink/40 border-t-ink animate-spin"></div>
-                <span>Writing Files...</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Write Files to Disk</span>
-              </>
-            )}
+            {isWriting ? 'Writing…' : (<><Play className="w-3 h-3 fill-current" /> Write to disk</>)}
           </button>
         </div>
       </div>

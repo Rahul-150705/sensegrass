@@ -868,21 +868,31 @@ export async function refineWithGroq(
 ): Promise<{ updatedBlueprint: ProductBlueprint; updatedCode: string; updatedFiles?: ProjectFile[]; assistantMessage: string }> {
   if (groq) {
     try {
-      const prompt = `You are the Groq Code Agent & AI Copilot.
-The user wants to modify the product blueprint, full-stack files, and live UI code.
+      const fileList = (currentFiles || []).map((f) => `- ${f.path} (${f.type})`).join('\n') || '(none yet)';
+      const prompt = `You are the Groq Code Agent & AI Copilot for an existing generated codebase.
+The user wants to modify the blueprint and/or the generated project files.
 
 CURRENT BLUEPRINT:
 ${JSON.stringify(currentBlueprint, null, 2)}
 
+EXISTING PROJECT FILES (do NOT re-list these unless you are changing them):
+${fileList}
+
 USER INSTRUCTION:
 "${userInstruction}"
 
+Rules for "updatedFiles":
+- It is a DELTA. Include ONLY files you are adding or changing — never files that stay the same.
+- Every entry must contain the file's COMPLETE new content (not a diff, not a snippet, never empty).
+- New files must include a sensible "type" (frontend|backend|config|database) and "language".
+- The server keeps every existing file that you do not mention. Do not try to "replace" the whole tree.
+
 Respond ONLY with valid JSON:
 {
-  "updatedBlueprint": modified ProductBlueprint JSON,
-  "updatedCode": modified main React UI code string,
-  "updatedFiles": optional array of modified ProjectFile objects [{ "path": "app/page.tsx", "content": "..." }],
-  "assistantMessage": brief friendly summary explaining updates
+  "updatedBlueprint": the FULL ProductBlueprint JSON (copy fields you didn't change),
+  "updatedCode": the main app/page.tsx contents if you changed it, else omit,
+  "updatedFiles": [ { "path": "...", "name": "...", "type": "...", "language": "...", "content": "FULL file contents" } ],
+  "assistantMessage": brief friendly summary of what you added/changed
 }`;
 
       const formattedMessages = chatHistory.slice(-10).map((m) => ({
@@ -902,9 +912,13 @@ Respond ONLY with valid JSON:
 
       if (result.updatedBlueprint && result.assistantMessage) {
         return {
-          updatedBlueprint: result.updatedBlueprint,
+          updatedBlueprint: { ...currentBlueprint, ...result.updatedBlueprint },
           updatedCode: result.updatedCode || currentCode,
-          updatedFiles: result.updatedFiles || currentFiles,
+          // A DELTA of added/changed files. The route merges this onto the
+          // existing tree by path — it must never be the whole tree.
+          updatedFiles: Array.isArray(result.updatedFiles)
+            ? result.updatedFiles.filter((f: any) => f && f.path && typeof f.content === 'string' && f.content.trim())
+            : [],
           assistantMessage: result.assistantMessage,
         };
       }
@@ -924,6 +938,64 @@ Respond ONLY with valid JSON:
   }
 
   throw new GroqGenerationError('GROQ_API_KEY is not configured, so the AI copilot is unavailable.');
+}
+
+// Given a generated project, produce a short Markdown runbook for getting it
+// running locally. Used by /api/run-instructions and bundled into the export
+// zip as RUN.md.
+export async function generateRunInstructionsWithGroq(
+  blueprint: ProductBlueprint,
+  files: ProjectFile[]
+): Promise<string> {
+  const pkg = files.find((f) => f.path === 'package.json' || f.path.endsWith('/package.json'));
+  const tree = files.map((f) => f.path).sort().join('\n');
+
+  if (groq) {
+    try {
+      const prompt = `You are a senior engineer. Given this generated project, write a SHORT, exact runbook in
+Markdown for getting it running locally from a fresh clone. Cover, in order: prerequisites (Node version),
+install command, any environment variables it needs (infer them from the file names / code), the dev
+command, and the URL to open. State the framework (e.g. Next.js) if obvious. Under ~180 words. No preamble,
+start directly with a "# Run <product>" heading.
+
+PRODUCT: ${blueprint.productName}
+FILE TREE:
+${tree}
+${pkg ? `\npackage.json:\n${pkg.content.slice(0, 1600)}` : ''}`;
+
+      const r = await groq.chat.completions.create({
+        model: GROQ_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+      });
+      const md = (r.choices[0]?.message?.content || '').trim().replace(/^```(?:md|markdown)?\n?/, '').replace(/\n?```$/, '');
+      if (md) return md;
+    } catch (err) {
+      console.error('Groq run-instructions error:', err);
+    }
+  }
+
+  const hasNext = files.some((f) => f.path.includes('next.config') || f.path.startsWith('app/'));
+  return `# Run ${blueprint.productName}
+
+## Prerequisites
+- Node.js 18+
+
+## Setup
+\`\`\`bash
+npm install
+\`\`\`
+
+## Environment
+Create \`.env.local\` and fill in any keys referenced in the code (API keys, database URLs).
+
+## Start
+\`\`\`bash
+npm run dev
+\`\`\`
+
+Then open ${hasNext ? 'http://localhost:3000' : 'the URL printed in the terminal'}.
+`;
 }
 
 // Minimal local fallback used only when GROQ_API_KEY is missing entirely —

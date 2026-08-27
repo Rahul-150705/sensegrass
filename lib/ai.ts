@@ -9,6 +9,7 @@ import {
   BlueprintRefineResult,
   refineProductPlanWithGroq,
   ProductPlanRefineResult,
+  generateRunInstructionsWithGroq,
   generateStarterUICodeWithGroq,
   generateFullStackCodeWithGroq,
   refineWithGroq,
@@ -139,6 +140,14 @@ export async function refineProductPlan(
   chatHistory: { role: string; content: string }[]
 ): Promise<ProductPlanRefineResult> {
   return refineProductPlanWithGroq(currentBlueprint, currentFileDirectory, userInstruction, chatHistory);
+}
+
+// A short Markdown runbook for getting the generated project running locally.
+export async function generateRunInstructions(
+  blueprint: ProductBlueprint,
+  files: ProjectFile[]
+): Promise<string> {
+  return generateRunInstructionsWithGroq(blueprint, files);
 }
 
 export async function refineProduct(

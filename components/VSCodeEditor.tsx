@@ -35,6 +35,7 @@ interface VSCodeEditorProps {
   onCodeChange?: (updatedFiles: ProjectFile[]) => void;
   fullscreen?: boolean;
   onToggleFullscreen?: () => void;
+  onExport?: () => void;
 }
 
 export default function VSCodeEditor({
@@ -46,9 +47,9 @@ export default function VSCodeEditor({
   onCodeChange,
   fullscreen,
   onToggleFullscreen,
+  onExport,
 }: VSCodeEditorProps) {
   const [selectedFilePath, setSelectedFilePath] = useState<string>(files[0]?.path || 'app/page.tsx');
-  const [activeView, setActiveView] = useState<'editor' | 'preview' | 'split'>('split');
   const [sidebarTab, setSidebarTab] = useState<'explorer' | 'ai'>('explorer');
   const [copied, setCopied] = useState(false);
   const [chatInput, setChatInput] = useState('');
@@ -81,19 +82,6 @@ export default function VSCodeEditor({
     setChatInput('');
   };
 
-  // Main page preview. This is only ever a rough *static* approximation — the
-  // generated file is TSX, not HTML, so imports/JSX expressions/hooks/state
-  // don't execute. It is rendered inside a fully sandboxed iframe (no scripts,
-  // opaque origin) so the generated markup can't touch this page, its cookies,
-  // or localStorage.
-  const mainPageFile = files.find((f) => f.path === 'app/page.tsx') || activeFile;
-  const previewBody = (mainPageFile.content || '')
-    .replace(/^\s*['"]use client['"];?\s*$/m, '')
-    .replace(/^\s*import[^\n]*$/gm, '') // drop import lines
-    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '') // drop JSX comments
-    .replace(/className=/g, 'class=');
-  const previewDoc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{margin:0;padding:16px;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#fff;color:#0f172a;line-height:1.5}*{box-sizing:border-box}pre,code{white-space:pre-wrap;word-break:break-word}</style></head><body>${previewBody}</body></html>`;
-
   const lines = (activeFile.content || '').split('\n');
 
   return (
@@ -112,37 +100,18 @@ export default function VSCodeEditor({
           </span>
         </div>
 
-        {/* View Mode Switcher */}
+        {/* Actions */}
         <div className="flex items-center gap-2">
-          <div className="bg-ink border border-line p-0.5 rounded-none flex text-[11px]">
+          {onExport && (
             <button
-              onClick={() => setActiveView('editor')}
-              className={`px-2.5 py-1 rounded-md font-semibold transition-all flex items-center gap-1 ${
-                activeView === 'editor' ? 'bg-molten text-ink' : 'text-steel hover:text-bone'
-              }`}
+              onClick={onExport}
+              className="bg-molten text-ink px-3 py-1.5 font-mono font-bold text-[10px] uppercase tracking-[0.12em] flex items-center gap-1.5 hover:opacity-90 transition-opacity"
             >
-              <Code className="w-3.5 h-3.5" />
-              <span>Editor Only</span>
+              <Terminal className="w-3.5 h-3.5" />
+              <span>Export &amp; run</span>
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
-            <button
-              onClick={() => setActiveView('split')}
-              className={`px-2.5 py-1 rounded-md font-semibold transition-all flex items-center gap-1 ${
-                activeView === 'split' ? 'bg-molten text-ink' : 'text-steel hover:text-bone'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Split View</span>
-            </button>
-            <button
-              onClick={() => setActiveView('preview')}
-              className={`px-2.5 py-1 rounded-md font-semibold transition-all flex items-center gap-1 ${
-                activeView === 'preview' ? 'bg-molten text-ink' : 'text-steel hover:text-bone'
-              }`}
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Live Preview</span>
-            </button>
-          </div>
+          )}
 
           {onToggleFullscreen && (
             <button
@@ -352,11 +321,9 @@ export default function VSCodeEditor({
           </div>
         </div>
 
-        {/* Center / Right Split Content (Code Editor + Live Preview) */}
+        {/* Code Editor */}
         <div className="flex-1 flex overflow-hidden bg-ink">
-          {/* Code Editor Pane (Shown in 'editor' or 'split' view) */}
-          {(activeView === 'editor' || activeView === 'split') && (
-            <div className="flex-1 flex flex-col border-r border-line min-w-0">
+            <div className="flex-1 flex flex-col min-w-0">
               {/* File Breadcrumb / Tab Bar */}
               <div className="bg-ink-soft border-b border-line px-4 py-2 flex items-center justify-between text-xs">
                 <div className="flex items-center space-x-2 font-mono text-bone/80">
@@ -390,36 +357,6 @@ export default function VSCodeEditor({
                 </table>
               </div>
             </div>
-          )}
-
-          {/* Live Preview Sandbox Pane (Shown in 'preview' or 'split' view) */}
-          {(activeView === 'preview' || activeView === 'split') && (
-            <div className="flex-1 flex flex-col bg-ink-soft/40 min-w-0">
-              <div className="bg-ink-soft border-b border-line px-4 py-2 flex items-center justify-between text-xs">
-                <span className="font-mono text-steel flex items-center gap-1.5">
-                  <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Real-Time Live Application Preview</span>
-                </span>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
-                  ● Live Render
-                </span>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 flex flex-col items-stretch gap-2 bg-ink">
-                <p className="text-[10px] font-mono text-molten/80 shrink-0">
-                  Static structural approximation — styling, state, and interactivity are not represented.
-                </p>
-                <div className="w-full flex-1 bg-white rounded-none overflow-hidden border border-line  min-h-[400px]">
-                  <iframe
-                    title="Live preview (sandboxed)"
-                    sandbox=""
-                    srcDoc={previewDoc}
-                    className="w-full h-full border-0"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

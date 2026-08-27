@@ -310,6 +310,7 @@ export default function ProjectStudioPage() {
           isSending={isRefiningChat}
           fullscreen
           onToggleFullscreen={() => setIsFullscreen(false)}
+          onExport={() => { setIsFullscreen(false); setActiveTab('terminal'); }}
         />
       </div>
     );
@@ -554,6 +555,7 @@ export default function ProjectStudioPage() {
               isSending={isRefiningChat}
               fullscreen={false}
               onToggleFullscreen={() => setIsFullscreen(true)}
+              onExport={() => setActiveTab('terminal')}
             />
           </div>
         )}

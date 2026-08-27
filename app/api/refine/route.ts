@@ -4,6 +4,7 @@ import { getDefaultStarterUICode } from '@/lib/openai';
 import { getProjectById, saveProject, addChatMessage } from '@/lib/store';
 import { getAuthenticatedUser } from '@/lib/auth-server';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { ProjectFile } from '@/types';
 
 export async function POST(request: Request) {
   try {
@@ -60,13 +61,31 @@ export async function POST(request: Request) {
     // Save assistant response message
     await addChatMessage(projectId, 'assistant', assistantMessage, 'studio', user.id);
 
+    // updatedFiles is a DELTA of added/changed files — merge it onto the
+    // existing tree by path so nothing the copilot didn't touch is lost.
+    const existingFiles: ProjectFile[] =
+      project.generatedFiles || project.blueprint?.generatedFiles || [];
+    const byPath = new Map<string, ProjectFile>(existingFiles.map((f) => [f.path, f]));
+    for (const f of updatedFiles || []) {
+      if (!f?.path || typeof f.content !== 'string' || !f.content.trim()) continue;
+      const prev = byPath.get(f.path);
+      byPath.set(f.path, {
+        path: f.path,
+        name: f.name || f.path.split('/').pop() || 'file',
+        type: (f.type as ProjectFile['type']) || prev?.type || 'frontend',
+        language: f.language || prev?.language || 'typescript',
+        content: f.content,
+      });
+    }
+    const mergedFiles = Array.from(byPath.values());
+
     // Save updated project blueprint and code
     const updatedProject = await saveProject({
       id: projectId,
       name: updatedBlueprint.productName,
       blueprint: updatedBlueprint,
       uiCode: updatedCode,
-      generatedFiles: updatedFiles || project.generatedFiles,
+      generatedFiles: mergedFiles.length > 0 ? mergedFiles : project.generatedFiles,
     });
 
     return NextResponse.json({
