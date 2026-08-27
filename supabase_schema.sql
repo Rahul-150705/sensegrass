@@ -71,6 +71,28 @@ ALTER TABLE public.chat_messages DROP CONSTRAINT IF EXISTS chat_messages_stage_c
 ALTER TABLE public.chat_messages ADD CONSTRAINT chat_messages_stage_check CHECK (stage IN ('studio', 'strategy', 'blueprint', 'fileDirectory'));
 
 -- ─────────────────────────────────────────────────────────────
+-- TABLE: ai_cache
+-- Input-keyed cache for the expensive pipeline stages (website scrape +
+-- Groq calls). Same normalized input -> stored JSON is returned instead of
+-- re-running the scraper/LLM. Keeps repeated identical runs off Groq's
+-- free-tier quota. Written/read only by the server (service-role key).
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.ai_cache (
+  cache_key TEXT PRIMARY KEY,          -- sha256(stage + stable-stringified input)
+  stage TEXT NOT NULL,                 -- 'analyze' | 'blueprint' | 'file-directory' | 'build-file'
+  payload JSONB NOT NULL,              -- the stored stage output
+  hits INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()) NOT NULL,
+  last_used_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ai_cache_stage ON public.ai_cache(stage);
+CREATE INDEX IF NOT EXISTS idx_ai_cache_last_used ON public.ai_cache(last_used_at);
+
+-- RLS on with NO policy => the anon/auth clients can't read or write it;
+-- only the service-role key (used server-side) bypasses RLS.
+ALTER TABLE public.ai_cache ENABLE ROW LEVEL SECURITY;
+
+-- ─────────────────────────────────────────────────────────────
 -- INDEXES (for performance)
 -- ─────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_projects_user_id ON public.projects(user_id);
