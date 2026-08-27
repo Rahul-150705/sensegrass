@@ -7,6 +7,7 @@ interface FileDirectoryViewProps {
   fileDirectory: ProductFileDirectory;
   onBuildProduct: () => void;
   isBuilding?: boolean;
+  showBuildButton?: boolean;
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -25,7 +26,12 @@ function Block({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export default function FileDirectoryView({ fileDirectory, onBuildProduct, isBuilding }: FileDirectoryViewProps) {
+export default function FileDirectoryView({
+  fileDirectory,
+  onBuildProduct,
+  isBuilding,
+  showBuildButton = true,
+}: FileDirectoryViewProps) {
   const groups = fileDirectory.files.reduce<Record<string, typeof fileDirectory.files>>((acc, f) => {
     (acc[f.type] = acc[f.type] || []).push(f);
     return acc;
@@ -40,14 +46,16 @@ export default function FileDirectoryView({ fileDirectory, onBuildProduct, isBui
             The build plan · {fileDirectory.files.length} files
           </h2>
         </div>
-        <button
-          onClick={onBuildProduct}
-          disabled={isBuilding}
-          className="group inline-flex items-center gap-2 bg-molten text-ink px-4 py-2.5 font-mono font-bold text-[10px] uppercase tracking-[0.14em] disabled:opacity-40 transition-opacity shrink-0"
-        >
-          {isBuilding ? 'Building…' : 'Write the code'}
-          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" strokeWidth={2.75} />
-        </button>
+        {showBuildButton && (
+          <button
+            onClick={onBuildProduct}
+            disabled={isBuilding}
+            className="group inline-flex items-center gap-2 bg-molten text-ink px-4 py-2.5 font-mono font-bold text-[10px] uppercase tracking-[0.14em] disabled:opacity-40 transition-opacity shrink-0"
+          >
+            {isBuilding ? 'Building…' : 'Write the code'}
+            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" strokeWidth={2.75} />
+          </button>
+        )}
       </div>
 
       <div className="p-4 sm:p-5">

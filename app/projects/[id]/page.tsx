@@ -466,6 +466,24 @@ export default function ProjectStudioPage() {
               /* One assistant for the whole product plan — blueprint + file tree */
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 items-start">
                 <div className="space-y-6 min-w-0">
+                  {/* Primary action, up top */}
+                  <div className="panel p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <span className="section-num">03 — PRODUCT PLAN</span>
+                      <p className="text-[12px] text-steel mt-1">
+                        Review the blueprint and file tree below. Refine with the assistant, then write the code.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleBuildProduct}
+                      disabled={isBuildingProduct}
+                      className="group inline-flex items-center gap-2 bg-molten text-ink px-5 py-3 font-mono font-bold text-[11px] uppercase tracking-[0.14em] disabled:opacity-40 transition-opacity shrink-0"
+                    >
+                      {isBuildingProduct ? 'Building…' : 'Write the code'}
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" strokeWidth={2.75} />
+                    </button>
+                  </div>
+
                   {project.analysis && (
                     <SourceCastDiff
                       compact
@@ -487,6 +505,7 @@ export default function ProjectStudioPage() {
                     fileDirectory={project.fileDirectory}
                     onBuildProduct={handleBuildProduct}
                     isBuilding={isBuildingProduct}
+                    showBuildButton={false}
                   />
                 </div>
 
