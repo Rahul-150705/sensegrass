@@ -17,7 +17,7 @@ import VSCodeEditor from '@/components/VSCodeEditor';
 import { Project, ChatMessage, ProjectFile } from '@/types';
 import { getDefaultFullStackFiles } from '@/lib/groq';
 import { getAuthToken } from '@/lib/auth';
-import { Layers, Database, Globe, ArrowLeft, Terminal, Sparkles, Play, Code, Lock, FolderTree, ArrowRight } from 'lucide-react';
+import { Layers, ArrowLeft, Terminal, Sparkles, Play, Code, FolderTree, ArrowRight } from 'lucide-react';
 
 function authHeaders(): Record<string, string> {
   const token = getAuthToken();

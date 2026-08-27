@@ -37,14 +37,14 @@ export default function AppRail() {
       {/* Floating brand — top left */}
       <Link
         href="/dashboard"
-        className={`fixed top-5 left-5 z-50 flex items-center gap-2 transition-all duration-500 hover:opacity-70 ${
+        className={`fixed top-4 left-4 z-50 flex items-center gap-2 border border-white/12 bg-ink-2 px-2.5 py-1.5 shadow-[0_8px_28px_-6px_rgba(0,0,0,0.7)] transition-all duration-500 hover:border-molten/40 ${
           mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
         }`}
       >
-        <span className="w-6 h-6 bg-molten grid place-items-center">
-          <Sparkles className="w-3.5 h-3.5 text-ink" strokeWidth={2.5} />
+        <span className="w-5 h-5 bg-molten grid place-items-center">
+          <Sparkles className="w-3 h-3 text-ink" strokeWidth={2.75} />
         </span>
-        <span className="font-mono font-bold text-[11px] tracking-[0.24em] uppercase text-bone">Recast</span>
+        <span className="font-mono font-bold text-[11px] tracking-[0.22em] uppercase text-bone">Recast</span>
       </Link>
 
       {/* Floating user + sign out — top right */}
@@ -68,7 +68,7 @@ export default function AppRail() {
       {/* Icon rail — left on desktop, bottom bar on mobile */}
       <nav
         aria-label="Primary"
-        className={`fixed z-40 flex items-center gap-0.5 border border-line bg-ink-soft p-1.5 transition-all duration-500
+        className={`fixed z-40 flex items-center gap-1 border border-white/12 bg-ink-2 p-1.5 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.75)] transition-all duration-500
           left-1/2 bottom-4 -translate-x-1/2 flex-row
           md:left-4 md:top-1/2 md:bottom-auto md:translate-x-0 md:-translate-y-1/2 md:flex-col
           ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
@@ -81,7 +81,7 @@ export default function AppRail() {
               href={href}
               aria-label={label}
               className={`group relative grid h-10 w-10 place-items-center transition-colors ${
-                active ? 'text-bone' : 'text-steel hover:text-bone hover:bg-white/[0.04]'
+                active ? 'text-bone bg-white/[0.06]' : 'text-bone/55 hover:text-bone hover:bg-white/[0.05]'
               }`}
             >
               {/* active molten bar */}
@@ -91,7 +91,7 @@ export default function AppRail() {
               <Icon className="w-[18px] h-[18px]" strokeWidth={active ? 2.5 : 2} />
 
               {/* Hover-expand label (desktop rail only) */}
-              <span className="pointer-events-none absolute left-full ml-3 hidden md:block whitespace-nowrap border border-line bg-ink-soft px-2.5 py-1 mono-label !text-[9px] !text-bone opacity-0 -translate-x-1 transition-all duration-150 group-hover:opacity-100 group-hover:translate-x-0">
+              <span className="pointer-events-none absolute left-full ml-3 hidden md:block whitespace-nowrap border border-white/12 bg-ink-2 px-2.5 py-1 mono-label !text-[9px] !text-bone opacity-0 -translate-x-1 transition-all duration-150 group-hover:opacity-100 group-hover:translate-x-0">
                 {label}
               </span>
             </Link>

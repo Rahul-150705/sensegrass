@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Terminal, Folder, Play, ShieldCheck, RefreshCw, Download } from 'lucide-react';
+import { Folder, Play, ShieldCheck, RefreshCw, Download } from 'lucide-react';
 import { getAuthToken } from '@/lib/auth';
 
 interface TerminalWidgetProps {

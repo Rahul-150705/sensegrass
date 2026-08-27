@@ -1,28 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ProjectFile, ChatMessage } from '@/types';
 import {
   FileCode,
   Folder,
   FolderOpen,
-  Eye,
-  Code,
   Send,
-  Bot,
-  User,
   Sparkles,
-  Play,
   Copy,
   Check,
   Server,
-  Layers,
   Terminal,
   FileText,
   ChevronRight,
   Maximize2,
   Minimize2,
-  RefreshCw,
   Database,
 } from 'lucide-react';
 
