@@ -125,16 +125,16 @@ export default function FileDirectoryChat({
   };
 
   return (
-    <div className="bg-slate-900/90 border border-white/[0.08] rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden backdrop-blur-xl">
+    <div className="bg-ink-soft border border-line rounded-none flex flex-col h-full  overflow-hidden ">
       {/* Header */}
-      <div className="bg-slate-950/90 border-b border-white/[0.08] px-3.5 py-3 flex items-center justify-between">
+      <div className="bg-ink border-b border-line px-3.5 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2.5">
-          <div className="w-7 h-7 rounded-lg bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+          <div className="w-7 h-7 rounded-none bg-molten/10 border border-molten/30 flex items-center justify-center text-molten">
             <FolderTree className="w-3.5 h-3.5" />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-white tracking-tight">File Directory Assistant</h3>
-            <p className="text-[10px] text-slate-400">Refine the build plan before generating code</p>
+            <h3 className="text-xs font-bold text-bone tracking-tight">File Directory Assistant</h3>
+            <p className="text-[10px] text-steel">Refine the build plan before generating code</p>
           </div>
         </div>
         {messages.length > 0 && (
@@ -142,7 +142,7 @@ export default function FileDirectoryChat({
             onClick={handleClear}
             disabled={isClearing}
             title="Clear this conversation"
-            className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-40"
+            className="p-1.5 text-steel hover:text-rose-400 hover:bg-rose-500/10 rounded-none transition-colors disabled:opacity-40"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -150,7 +150,7 @@ export default function FileDirectoryChat({
       </div>
 
       {/* Quick Action Chips */}
-      <div className="px-3 py-2 bg-slate-950/60 border-b border-white/[0.06] overflow-x-auto flex space-x-1.5 scrollbar-none">
+      <div className="px-3 py-2 bg-ink border-b border-line overflow-x-auto flex space-x-1.5 scrollbar-none">
         {PRESETS.map((preset, idx) => {
           const Icon = preset.icon;
           return (
@@ -158,9 +158,9 @@ export default function FileDirectoryChat({
               key={idx}
               onClick={() => sendMessage(preset.prompt)}
               disabled={isSending}
-              className="text-[10px] bg-slate-900 hover:bg-cyan-600/20 text-slate-300 hover:text-white border border-white/[0.08] hover:border-cyan-500/40 px-2.5 py-1 rounded-md flex items-center space-x-1 shrink-0 transition-all disabled:opacity-40 font-medium"
+              className="text-[10px] bg-ink-soft hover:bg-molten/10 text-bone/80 hover:text-bone border border-line hover:border-molten/40 px-2.5 py-1 rounded-md flex items-center space-x-1 shrink-0 transition-all disabled:opacity-40 font-medium"
             >
-              <Icon className="w-3 h-3 text-cyan-400" />
+              <Icon className="w-3 h-3 text-molten" />
               <span>{preset.label}</span>
             </button>
           );
@@ -171,12 +171,12 @@ export default function FileDirectoryChat({
       <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-3 min-h-[200px]">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-10 text-center space-y-2.5">
-            <div className="w-9 h-9 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center">
-              <FolderTree className="w-4 h-4 text-cyan-400" />
+            <div className="w-9 h-9 rounded-none bg-ink border border-line flex items-center justify-center">
+              <FolderTree className="w-4 h-4 text-molten" />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-200">Refine the file directory</p>
-              <p className="text-[10px] text-slate-400 max-w-[220px] mx-auto mt-0.5 leading-relaxed">
+              <p className="text-xs font-bold text-bone">Refine the file directory</p>
+              <p className="text-[10px] text-steel max-w-[220px] mx-auto mt-0.5 leading-relaxed">
                 Ask me to add, remove, or change planned files and routes — I'll only update the plan once you confirm.
               </p>
             </div>
@@ -185,20 +185,20 @@ export default function FileDirectoryChat({
           messages.map((msg) => (
             <div key={msg.id} className={`flex items-end gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
               <div
-                className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] shrink-0 ${
+                className={`w-6 h-6 rounded-none flex items-center justify-center text-[10px] shrink-0 ${
                   msg.role === 'user'
-                    ? 'bg-cyan-600 text-white shadow-sm'
-                    : 'bg-slate-800 text-slate-300 border border-white/[0.08]'
+                    ? 'bg-molten text-bone '
+                    : 'bg-ink-2 text-bone/80 border border-line'
                 }`}
               >
                 {msg.role === 'user' ? <User className="w-3 h-3" /> : <Bot className="w-3 h-3" />}
               </div>
               <div className="max-w-[85%] space-y-1">
                 <div
-                  className={`p-3 rounded-xl text-xs leading-relaxed ${
+                  className={`p-3 rounded-none text-xs leading-relaxed ${
                     msg.role === 'user'
-                      ? 'bg-cyan-600 text-white rounded-br-none'
-                      : 'bg-slate-950/90 border border-white/[0.07] text-slate-200 rounded-bl-none'
+                      ? 'bg-molten text-bone rounded-br-none'
+                      : 'bg-ink border border-line text-bone rounded-bl-none'
                   }`}
                 >
                   {msg.content}
@@ -214,14 +214,14 @@ export default function FileDirectoryChat({
                           onRefresh();
                           setRefreshedIds((prev) => new Set(prev).add(msg.id));
                         }}
-                        className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-cyan-300 hover:text-cyan-200 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 px-2 py-0.5 rounded-md transition-colors"
+                        className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-molten hover:text-molten bg-cyan-500/10 hover:bg-cyan-500/20 border border-molten/30 px-2 py-0.5 rounded-md transition-colors"
                       >
                         <RefreshCw className="w-3 h-3" />
                         {refreshedIds.has(msg.id) ? 'Refreshed' : 'Click refresh to see updated plan'}
                       </button>
                     </div>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-amber-400">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-molten">
                       <Lightbulb className="w-3 h-3" /> Recommendation — reply to confirm
                     </span>
                   ))}
@@ -232,10 +232,10 @@ export default function FileDirectoryChat({
 
         {isSending && (
           <div className="flex items-end gap-2">
-            <div className="w-6 h-6 rounded-lg bg-slate-800 border border-white/[0.08] flex items-center justify-center shrink-0">
-              <Bot className="w-3 h-3 text-slate-300" />
+            <div className="w-6 h-6 rounded-none bg-ink-2 border border-line flex items-center justify-center shrink-0">
+              <Bot className="w-3 h-3 text-bone/80" />
             </div>
-            <div className="px-3.5 py-2.5 bg-slate-950/90 border border-white/[0.07] rounded-xl rounded-bl-none">
+            <div className="px-3.5 py-2.5 bg-ink border border-line rounded-none rounded-bl-none">
               <div className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }}></span>
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }}></span>
@@ -248,8 +248,8 @@ export default function FileDirectoryChat({
       </div>
 
       {/* Input Form */}
-      <div className="p-2.5 bg-slate-950/90 border-t border-white/[0.07]">
-        <div className="flex items-center space-x-1.5 bg-slate-900 border border-white/[0.08] rounded-xl p-1 focus-within:border-cyan-500/50 transition-colors">
+      <div className="p-2.5 bg-ink border-t border-line">
+        <div className="flex items-center space-x-1.5 bg-ink-soft border border-line rounded-none p-1 focus-within:border-molten/50 transition-colors">
           <input
             type="text"
             value={input}
@@ -257,12 +257,12 @@ export default function FileDirectoryChat({
             onKeyDown={handleKeyDown}
             disabled={isSending}
             placeholder="Ask or instruct — e.g. 'add a webhooks endpoint'"
-            className="flex-1 bg-transparent px-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none"
+            className="flex-1 bg-transparent px-2.5 text-xs text-bone placeholder-steel focus:outline-none"
           />
           <button
             onClick={() => sendMessage(input)}
             disabled={!input.trim() || isSending}
-            className="bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-600 text-white p-2 rounded-lg transition-all"
+            className="bg-molten hover:bg-cyan-500 disabled:bg-ink-2 disabled:text-steel/60 text-bone p-2 rounded-none transition-all"
           >
             <Send className="w-3 h-3" />
           </button>

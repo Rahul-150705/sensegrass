@@ -144,30 +144,30 @@ export default function TerminalWidget({
   };
 
   return (
-    <div className="bg-slate-900/90 border border-white/[0.08] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-5">
+    <div className="bg-ink-soft border border-line rounded-none p-6 sm:p-8  space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+      <div className="flex items-center justify-between border-b border-line pb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center text-indigo-400">
+          <div className="w-8 h-8 rounded-none bg-ink border border-line flex items-center justify-center text-molten">
             <Terminal className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <h3 className="text-sm font-bold text-bone flex items-center gap-2">
               Terminal File System Writer & Self-Healing Verifier
             </h3>
-            <p className="text-xs text-slate-400">Target path prompt, file writer, and automated health checks.</p>
+            <p className="text-xs text-steel">Target path prompt, file writer, and automated health checks.</p>
           </div>
         </div>
       </div>
 
       {/* Location Input Form */}
-      <div className="space-y-2 bg-slate-950/80 border border-white/[0.07] p-4 rounded-xl">
-        <label className="text-xs font-bold text-slate-200 flex items-center space-x-2">
-          <Folder className="w-4 h-4 text-indigo-400" />
+      <div className="space-y-2 bg-ink border border-line p-4 rounded-none">
+        <label className="text-xs font-bold text-bone flex items-center space-x-2">
+          <Folder className="w-4 h-4 text-molten" />
           <span>Export Folder Name:</span>
         </label>
-        <p className="text-[11px] text-slate-500 -mt-1">
-          Files are written to a sandboxed <code className="text-indigo-300 font-mono">.exports/</code> directory on the server under this folder name.
+        <p className="text-[11px] text-steel -mt-1">
+          Files are written to a sandboxed <code className="text-molten font-mono">.exports/</code> directory on the server under this folder name.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
@@ -175,16 +175,16 @@ export default function TerminalWidget({
             value={targetDir}
             onChange={(e) => setTargetDir(e.target.value)}
             placeholder="my-generated-saas"
-            className="flex-1 bg-slate-900 border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none font-mono focus:border-indigo-500/60"
+            className="flex-1 bg-ink-soft border border-line rounded-none px-3.5 py-2.5 text-xs text-bone placeholder-steel focus:outline-none font-mono focus:border-molten/60"
           />
           <button
             onClick={handleWriteFiles}
             disabled={isWriting || !targetDir.trim()}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md shadow-indigo-500/20 flex items-center justify-center space-x-2 shrink-0 disabled:opacity-50 transition-all active:scale-95"
+            className="bg-molten hover:opacity-90 text-ink font-bold text-xs px-5 py-2.5 rounded-none  flex items-center justify-center space-x-2 shrink-0 disabled:opacity-50 transition-all active:scale-95"
           >
             {isWriting ? (
               <>
-                <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin"></div>
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-ink/40 border-t-ink animate-spin"></div>
                 <span>Writing Files...</span>
               </>
             ) : (
@@ -198,14 +198,14 @@ export default function TerminalWidget({
       </div>
 
       {/* Interactive CLI Console */}
-      <div className="bg-slate-950 border border-white/[0.08] rounded-xl overflow-hidden font-mono text-xs shadow-inner">
-        <div className="bg-slate-900 border-b border-white/[0.06] px-3.5 py-2 flex items-center justify-between text-[10px] text-slate-400">
+      <div className="bg-ink border border-line rounded-none overflow-hidden font-mono text-xs ">
+        <div className="bg-ink-soft border-b border-line px-3.5 py-2 flex items-center justify-between text-[10px] text-steel">
           <span className="flex items-center gap-2 font-mono font-semibold">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span> TERMINAL CLI CONSOLE
           </span>
           <span>powershell / bash</span>
         </div>
-        <div className="p-4 space-y-1.5 min-h-[160px] max-h-[260px] overflow-y-auto text-slate-300">
+        <div className="p-4 space-y-1.5 min-h-[160px] max-h-[260px] overflow-y-auto text-bone/80">
           {logs.map((log, idx) => (
             <div
               key={idx}
@@ -215,8 +215,8 @@ export default function TerminalWidget({
                   : log.startsWith('[ERROR]') || log.startsWith('[VERIFICATION WARNING]')
                   ? 'text-rose-400 font-semibold'
                   : log.startsWith('$')
-                  ? 'text-indigo-300'
-                  : 'text-slate-400'
+                  ? 'text-molten'
+                  : 'text-steel'
               }`}
             >
               {log}
@@ -226,25 +226,25 @@ export default function TerminalWidget({
       </div>
 
       {/* Self-Healing Health Verification Trigger */}
-      <div className="bg-slate-950/80 border border-white/[0.07] p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="bg-ink border border-line p-4 rounded-none flex flex-col sm:flex-row items-center justify-between gap-3">
         <div>
-          <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+          <h4 className="text-xs font-bold text-bone flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
             Automated Health Check & Self-Healing Verifier
           </h4>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            Checks target server health on <code className="text-indigo-300 font-mono">http://localhost:3000</code>. Automatically rewrites code if errors occur.
+          <p className="text-[11px] text-steel mt-0.5">
+            Checks target server health on <code className="text-molten font-mono">http://localhost:3000</code>. Automatically rewrites code if errors occur.
           </p>
         </div>
 
         <button
           onClick={handleVerifyServer}
           disabled={isVerifying}
-          className="bg-slate-900 hover:bg-slate-850 text-slate-200 font-bold text-xs px-4 py-2.5 rounded-xl border border-white/10 flex items-center space-x-2 shrink-0 transition-all disabled:opacity-50"
+          className="bg-ink-soft hover:bg-ink-2 text-bone font-bold text-xs px-4 py-2.5 rounded-none border border-line flex items-center space-x-2 shrink-0 transition-all disabled:opacity-50"
         >
           {isVerifying ? (
             <>
-              <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-molten" />
               <span>Verifying Health...</span>
             </>
           ) : (

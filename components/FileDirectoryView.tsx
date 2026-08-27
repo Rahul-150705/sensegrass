@@ -23,10 +23,10 @@ interface FileDirectoryViewProps {
 }
 
 const TYPE_META: Record<string, { label: string; icon: any; color: string }> = {
-  frontend: { label: 'Frontend', icon: FileCode, color: 'text-cyan-400' },
+  frontend: { label: 'Frontend', icon: FileCode, color: 'text-molten' },
   backend: { label: 'Backend / API', icon: Server, color: 'text-emerald-400' },
-  database: { label: 'Database', icon: Database, color: 'text-amber-400' },
-  config: { label: 'Config', icon: Settings, color: 'text-purple-400' },
+  database: { label: 'Database', icon: Database, color: 'text-molten' },
+  config: { label: 'Config', icon: Settings, color: 'text-molten' },
 };
 
 export default function FileDirectoryView({ fileDirectory, onBuildProduct, isBuilding }: FileDirectoryViewProps) {
@@ -39,15 +39,15 @@ export default function FileDirectoryView({ fileDirectory, onBuildProduct, isBui
   }, {});
 
   return (
-    <div className="bg-slate-900/90 border border-white/[0.08] rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6 relative overflow-hidden">
+    <div className="bg-ink-soft border border-line rounded-none p-6 sm:p-8   space-y-6 relative overflow-hidden">
       {/* Header & CTA */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-5">
         <div>
-          <span className="bg-slate-950 text-cyan-400 border border-cyan-500/30 text-[10px] px-3 py-0.5 rounded-md font-mono font-bold tracking-wider uppercase">
+          <span className="bg-ink text-molten border border-molten/30 text-[10px] px-3 py-0.5 rounded-md font-mono font-bold tracking-wider uppercase">
             Phase 2 — Product File Directory
           </span>
-          <h2 className="text-xl sm:text-2xl font-bold text-white mt-2 tracking-tight">The Build Plan</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <h2 className="text-xl sm:text-2xl font-bold text-bone mt-2 tracking-tight">The Build Plan</h2>
+          <p className="text-xs text-steel mt-0.5">
             Review the exact files Build will generate. Refine it with the assistant, then build when ready.
           </p>
         </div>
@@ -55,11 +55,11 @@ export default function FileDirectoryView({ fileDirectory, onBuildProduct, isBui
         <button
           onClick={onBuildProduct}
           disabled={isBuilding}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-3 rounded-xl shadow-md shadow-indigo-500/20 flex items-center justify-center space-x-2 transition-all disabled:opacity-50 shrink-0"
+          className="bg-molten hover:opacity-90 text-ink font-bold text-xs px-5 py-3 rounded-none  flex items-center justify-center space-x-2 transition-all disabled:opacity-50 shrink-0"
         >
           {isBuilding ? (
             <>
-              <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin"></div>
+              <div className="w-3.5 h-3.5 rounded-full border-2 border-ink/40 border-t-ink animate-spin"></div>
               <span>Building...</span>
             </>
           ) : (
@@ -74,26 +74,26 @@ export default function FileDirectoryView({ fileDirectory, onBuildProduct, isBui
 
       {/* File Tree — grouped dynamically by whatever types are present */}
       <div className="space-y-3">
-        <div className="flex items-center space-x-2 text-indigo-400 text-xs font-bold uppercase tracking-wider font-mono">
+        <div className="flex items-center space-x-2 text-molten text-xs font-bold uppercase tracking-wider font-mono">
           <FolderTree className="w-3.5 h-3.5" />
           <span>Planned File Tree ({fileDirectory.files.length} files)</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {Object.entries(groups).map(([type, files]) => {
-            const meta = TYPE_META[type] || { label: type, icon: Folder, color: 'text-slate-400' };
+            const meta = TYPE_META[type] || { label: type, icon: Folder, color: 'text-steel' };
             const Icon = meta.icon;
             return (
-              <div key={type} className="bg-slate-950/80 border border-white/[0.07] p-4 rounded-xl space-y-2">
+              <div key={type} className="bg-ink border border-line p-4 rounded-none space-y-2">
                 <div className={`flex items-center space-x-1.5 text-xs font-bold uppercase tracking-wider font-mono ${meta.color}`}>
                   <Icon className="w-3.5 h-3.5" />
                   <span>{meta.label}</span>
-                  <span className="text-slate-500 font-normal normal-case">({files.length})</span>
+                  <span className="text-steel font-normal normal-case">({files.length})</span>
                 </div>
                 <div className="space-y-1.5 font-mono text-[11px]">
                   {files.map((f) => (
                     <div key={f.path} className="group" title={f.purpose}>
-                      <div className="text-slate-200 truncate">{f.path}</div>
-                      <div className="text-slate-500 text-[10px] truncate leading-relaxed">{f.purpose}</div>
+                      <div className="text-bone truncate">{f.path}</div>
+                      <div className="text-steel text-[10px] truncate leading-relaxed">{f.purpose}</div>
                     </div>
                   ))}
                 </div>
@@ -106,8 +106,8 @@ export default function FileDirectoryView({ fileDirectory, onBuildProduct, isBui
       {/* Routes, Components, Data Entities, Integrations */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {fileDirectory.routes.length > 0 && (
-          <div className="bg-slate-950/80 border border-white/[0.07] p-4.5 rounded-xl space-y-2">
-            <div className="flex items-center space-x-2 text-indigo-400 text-xs font-bold uppercase tracking-wider font-mono">
+          <div className="bg-ink border border-line p-4.5 rounded-none space-y-2">
+            <div className="flex items-center space-x-2 text-molten text-xs font-bold uppercase tracking-wider font-mono">
               <RouteIcon className="w-3.5 h-3.5" />
               <span>Routes</span>
             </div>
@@ -116,14 +116,14 @@ export default function FileDirectoryView({ fileDirectory, onBuildProduct, isBui
                 <li key={r.path} className="flex items-start gap-2">
                   <span
                     className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${
-                      r.kind === 'api' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+                      r.kind === 'api' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-cyan-500/10 text-molten border border-molten/20'
                     }`}
                   >
                     {r.kind}
                   </span>
                   <div>
-                    <div className="font-mono text-slate-200">{r.path}</div>
-                    <div className="text-slate-400 text-[11px]">{r.description}</div>
+                    <div className="font-mono text-bone">{r.path}</div>
+                    <div className="text-steel text-[11px]">{r.description}</div>
                   </div>
                 </li>
               ))}
@@ -132,14 +132,14 @@ export default function FileDirectoryView({ fileDirectory, onBuildProduct, isBui
         )}
 
         {fileDirectory.components.length > 0 && (
-          <div className="bg-slate-950/80 border border-white/[0.07] p-4.5 rounded-xl space-y-2">
-            <div className="flex items-center space-x-2 text-purple-400 text-xs font-bold uppercase tracking-wider font-mono">
+          <div className="bg-ink border border-line p-4.5 rounded-none space-y-2">
+            <div className="flex items-center space-x-2 text-molten text-xs font-bold uppercase tracking-wider font-mono">
               <Puzzle className="w-3.5 h-3.5" />
               <span>Components</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {fileDirectory.components.map((c) => (
-                <span key={c} className="text-[11px] bg-slate-900 border border-white/[0.06] text-slate-300 px-2 py-0.5 rounded-md font-mono">
+                <span key={c} className="text-[11px] bg-ink-soft border border-line text-bone/80 px-2 py-0.5 rounded-md font-mono">
                   {c}
                 </span>
               ))}
@@ -148,16 +148,16 @@ export default function FileDirectoryView({ fileDirectory, onBuildProduct, isBui
         )}
 
         {fileDirectory.dataEntities.length > 0 && (
-          <div className="bg-slate-950/80 border border-white/[0.07] p-4.5 rounded-xl space-y-2">
-            <div className="flex items-center space-x-2 text-amber-400 text-xs font-bold uppercase tracking-wider font-mono">
+          <div className="bg-ink border border-line p-4.5 rounded-none space-y-2">
+            <div className="flex items-center space-x-2 text-molten text-xs font-bold uppercase tracking-wider font-mono">
               <Table2 className="w-3.5 h-3.5" />
               <span>Data Entities</span>
             </div>
-            <ul className="space-y-1.5 text-xs text-slate-300">
+            <ul className="space-y-1.5 text-xs text-bone/80">
               {fileDirectory.dataEntities.map((e) => (
                 <li key={e.name}>
-                  <span className="font-mono font-semibold text-slate-200">{e.name}</span>
-                  <span className="text-slate-400"> — {e.description}</span>
+                  <span className="font-mono font-semibold text-bone">{e.name}</span>
+                  <span className="text-steel"> — {e.description}</span>
                 </li>
               ))}
             </ul>
@@ -165,14 +165,14 @@ export default function FileDirectoryView({ fileDirectory, onBuildProduct, isBui
         )}
 
         {fileDirectory.externalIntegrations.length > 0 && (
-          <div className="bg-slate-950/80 border border-white/[0.07] p-4.5 rounded-xl space-y-2">
+          <div className="bg-ink border border-line p-4.5 rounded-none space-y-2">
             <div className="flex items-center space-x-2 text-emerald-400 text-xs font-bold uppercase tracking-wider font-mono">
               <Plug className="w-3.5 h-3.5" />
               <span>External Integrations</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {fileDirectory.externalIntegrations.map((i) => (
-                <span key={i} className="text-[11px] bg-slate-900 border border-white/[0.06] text-slate-300 px-2 py-0.5 rounded-md">
+                <span key={i} className="text-[11px] bg-ink-soft border border-line text-bone/80 px-2 py-0.5 rounded-md">
                   {i}
                 </span>
               ))}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Header from '@/components/Header';
+import AppRail from '@/components/AppRail';
 import AnalysisView from '@/components/AnalysisView';
 import StrategyChat from '@/components/StrategyChat';
 import FileDirectoryView from '@/components/FileDirectoryView';
@@ -262,11 +262,11 @@ export default function ProjectStudioPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-        <Header />
-        <div className="flex-1 flex flex-col items-center justify-center py-20 space-y-3">
-          <div className="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-          <p className="text-xs font-mono text-slate-400">Loading Product Studio...</p>
+      <div className="min-h-screen flex flex-col bg-ink text-bone md:pl-24">
+        <AppRail />
+        <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
+          <div className="w-6 h-6 border-2 border-line border-t-molten rounded-full animate-spin"></div>
+          <p className="mono-label">loading studio…</p>
         </div>
       </div>
     );
@@ -274,15 +274,15 @@ export default function ProjectStudioPage() {
 
   if (error || !project) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-        <Header />
-        <div className="flex-1 flex flex-col items-center justify-center py-20 space-y-4">
-          <p className="text-xs text-rose-400 font-mono">{error || 'Project not found.'}</p>
+      <div className="min-h-screen flex flex-col bg-ink text-bone md:pl-24">
+        <AppRail />
+        <div className="flex-1 flex flex-col items-center justify-center py-20 gap-4">
+          <p className="mono-label !text-molten !tracking-normal !text-[11px]">{error || 'Project not found.'}</p>
           <button
-            onClick={() => router.push('/')}
-            className="text-xs bg-slate-900 border border-white/10 hover:bg-slate-850 px-4 py-2 rounded-xl text-slate-200"
+            onClick={() => router.push('/dashboard')}
+            className="mono-label border border-line hover:border-molten/40 hover:text-bone px-4 py-2 transition-colors"
           >
-            Back to Home
+            ← Console
           </button>
         </div>
       </div>
@@ -301,7 +301,7 @@ export default function ProjectStudioPage() {
   // automatically once Build finishes, or manually via the maximize toggle.
   if (isFullscreen) {
     return (
-      <div className="fixed inset-0 z-[100] bg-slate-950 p-3 sm:p-4">
+      <div className="fixed inset-0 z-[100] bg-ink p-3 sm:p-4">
         <VSCodeEditor
           files={activeFiles}
           productName={project.blueprint?.productName || project.name}
@@ -317,119 +317,83 @@ export default function ProjectStudioPage() {
 
   const hasGeneratedCode = Boolean(project.generatedFiles && project.generatedFiles.length > 0);
 
-  return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-      <Header />
+  const STAGES: { id: typeof activeTab; n: string; label: string; enabled: boolean }[] = [
+    { id: 'pipeline', n: '01', label: 'Pipeline', enabled: true },
+    { id: 'analysis', n: '02', label: 'Strategy', enabled: !!project.analysis },
+    { id: 'fileDirectory', n: '03', label: 'Blueprint', enabled: !!project.analysis },
+    { id: 'vscode', n: '04', label: 'Code', enabled: hasGeneratedCode },
+    { id: 'terminal', n: '05', label: 'Export', enabled: hasGeneratedCode },
+  ];
+  const currentStage = STAGES.find((s) => s.id === activeTab) ?? STAGES[0];
 
-      {/* Workspace Navigation Header */}
-      <div className="bg-slate-900/90 border-b border-white/[0.08] px-4 sm:px-6 py-2.5">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center space-x-3">
+  return (
+    <div className="min-h-screen flex flex-col bg-ink text-bone md:pl-24 pb-9">
+      <AppRail />
+
+      {/* Workspace bar */}
+      <div className="rule-b border-line bg-ink-soft">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => router.push('/dashboard')}
-              className="p-1.5 bg-slate-950 hover:bg-slate-850 text-slate-400 hover:text-white rounded-xl border border-white/10 transition-colors"
-              title="Back to Projects"
+              className="text-steel hover:text-molten transition-colors shrink-0"
+              title="Back to console"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h1 className="text-sm font-bold text-white tracking-tight">
-                  {project.blueprint?.productName || project.name}
-                </h1>
-                <span className="text-[10px] bg-slate-950 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-md font-mono flex items-center gap-1">
-                  <Database className="w-3 h-3 text-emerald-400" /> Groq AI Engine
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 flex items-center gap-1 font-mono">
-                <Globe className="w-3 h-3 text-indigo-400" /> {project.websiteUrl || 'Idea-only project'}
+            <div className="min-w-0">
+              <h1 className="text-sm font-semibold text-bone truncate">
+                {project.blueprint?.productName || project.name}
+              </h1>
+              <p className="mono-label !text-[9px] flex items-center gap-1 truncate">
+                <span className="w-1 h-1 bg-molten shrink-0" />
+                {project.websiteUrl || 'idea-only'}
               </p>
             </div>
           </div>
 
-          {/* Studio Workspace Mode Tabs — each stage unlocks only once its data is ready */}
-          <div className="flex items-center space-x-2">
-            <div className="bg-slate-950 border border-white/[0.08] p-1 rounded-xl flex space-x-1 text-xs">
-              <button
-                onClick={() => setActiveTab('pipeline')}
-                className={`px-3 py-1 rounded-lg font-semibold transition-all flex items-center space-x-1.5 text-xs ${
-                  activeTab === 'pipeline' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>1. Agent Pipeline</span>
-              </button>
-
-              <button
-                onClick={() => project.analysis && setActiveTab('analysis')}
-                disabled={!project.analysis}
-                title={project.analysis ? undefined : 'Unlocks once the strategy analysis is ready'}
-                className={`px-3 py-1 rounded-lg font-semibold transition-all flex items-center space-x-1.5 text-xs ${
-                  !project.analysis
-                    ? 'text-slate-600 cursor-not-allowed opacity-50'
-                    : activeTab === 'analysis'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {project.analysis ? <Layers className="w-3.5 h-3.5" /> : <Lock className="w-3 h-3" />}
-                <span>2. Strategy</span>
-              </button>
-
-              <button
-                onClick={() => project.analysis && setActiveTab('fileDirectory')}
-                disabled={!project.analysis}
-                title={project.analysis ? undefined : 'Unlocks once the strategy analysis is ready'}
-                className={`px-3 py-1 rounded-lg font-semibold transition-all flex items-center space-x-1.5 text-xs ${
-                  !project.analysis
-                    ? 'text-slate-600 cursor-not-allowed opacity-50'
-                    : activeTab === 'fileDirectory'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {project.analysis ? <FolderTree className="w-3.5 h-3.5" /> : <Lock className="w-3 h-3" />}
-                <span>3. Product File Directory</span>
-              </button>
-
-              <button
-                onClick={() => hasGeneratedCode && setActiveTab('vscode')}
-                disabled={!hasGeneratedCode}
-                title={hasGeneratedCode ? undefined : 'Unlocks once you click Build Product'}
-                className={`px-3 py-1 rounded-lg font-semibold transition-all flex items-center space-x-1.5 text-xs ${
-                  !hasGeneratedCode
-                    ? 'text-slate-600 cursor-not-allowed opacity-50'
-                    : activeTab === 'vscode'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {hasGeneratedCode ? <Code className="w-3.5 h-3.5" /> : <Lock className="w-3 h-3" />}
-                <span>4. VS Code Studio</span>
-              </button>
-
-              <button
-                onClick={() => hasGeneratedCode && setActiveTab('terminal')}
-                disabled={!hasGeneratedCode}
-                title={hasGeneratedCode ? undefined : 'Unlocks once you click Build Product'}
-                className={`px-3 py-1 rounded-lg font-semibold transition-all flex items-center space-x-1.5 text-xs ${
-                  !hasGeneratedCode
-                    ? 'text-slate-600 cursor-not-allowed opacity-50'
-                    : activeTab === 'terminal'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {hasGeneratedCode ? <Terminal className="w-3.5 h-3.5" /> : <Lock className="w-3 h-3" />}
-                <span>5. CLI Export</span>
-              </button>
-            </div>
+          {/* Numbered stage nav */}
+          <div className="flex items-stretch">
+            {STAGES.map((s) => {
+              const active = activeTab === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => s.enabled && setActiveTab(s.id)}
+                  disabled={!s.enabled}
+                  className={`relative px-3 py-2 flex items-center gap-1.5 transition-colors ${
+                    !s.enabled
+                      ? 'text-steel/40 cursor-not-allowed'
+                      : active
+                      ? 'text-bone'
+                      : 'text-steel hover:text-bone'
+                  }`}
+                >
+                  {active && <span className="absolute left-0 right-0 -bottom-3 h-[2px] bg-molten" />}
+                  <span className={`font-mono text-[9px] ${active ? 'text-molten' : ''}`}>{s.n}</span>
+                  <span className="font-mono text-[10px] uppercase tracking-wider">{s.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
+      {/* Console strip */}
+      <div className="fixed bottom-0 left-0 right-0 md:left-24 z-30 rule-t border-line bg-ink-soft">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 h-9 flex items-center gap-3 mono-label !text-[9px] overflow-x-auto">
+          <span className="text-molten">STAGE {currentStage.n}/05</span>
+          <span className="text-steel/40">·</span>
+          <span>{currentStage.label.toLowerCase()}</span>
+          <span className="text-steel/40">·</span>
+          <span>groq / gpt-oss-120b</span>
+          <span className="text-steel/40">·</span>
+          <span className="truncate">{project.blueprint?.productName || project.name}</span>
+        </div>
+      </div>
+
       {/* Main Workspace Content */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full space-y-6">
+      <main className="flex-1 max-w-7xl mx-auto px-5 sm:px-8 py-8 w-full space-y-6">
         {activeTab === 'pipeline' ? (
           <div className="max-w-3xl mx-auto space-y-6">
             <PipelineStepper
@@ -444,7 +408,7 @@ export default function ProjectStudioPage() {
               <div className="text-center pt-2">
                 <button
                   onClick={() => setActiveTab('fileDirectory')}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-md shadow-indigo-500/20 inline-flex items-center space-x-2 transition-all active:scale-95"
+                  className="bg-molten hover:opacity-90 text-ink font-bold text-xs px-6 py-3 rounded-none  inline-flex items-center space-x-2 transition-all active:scale-95"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                   <span>Continue to Product File Directory</span>
@@ -475,13 +439,13 @@ export default function ProjectStudioPage() {
         ) : activeTab === 'fileDirectory' && project.analysis ? (
           <div className="max-w-7xl mx-auto space-y-6">
             {!project.fileDirectory ? (
-              <div className="max-w-xl mx-auto text-center py-16 space-y-4 bg-slate-900/90 border border-white/[0.08] rounded-2xl shadow-2xl">
-                <div className="w-12 h-12 rounded-xl bg-cyan-600/15 border border-cyan-500/30 flex items-center justify-center mx-auto text-cyan-400">
+              <div className="max-w-xl mx-auto text-center py-16 space-y-4 bg-ink-soft border border-line rounded-none ">
+                <div className="w-12 h-12 rounded-none bg-molten/10 border border-molten/30 flex items-center justify-center mx-auto text-molten">
                   <FolderTree className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">Plan the Product File Directory</h3>
-                  <p className="text-xs text-slate-400 mt-1.5 max-w-sm mx-auto leading-relaxed">
+                  <h3 className="text-sm font-bold text-bone">Plan the Product File Directory</h3>
+                  <p className="text-xs text-steel mt-1.5 max-w-sm mx-auto leading-relaxed">
                     Groq will plan the exact file tree, routes, components, and data entities this product
                     needs — no code is written yet.
                   </p>
@@ -489,11 +453,11 @@ export default function ProjectStudioPage() {
                 <button
                   onClick={handleGenerateFileDirectory}
                   disabled={isGeneratingFileDirectory}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-md shadow-indigo-500/20 inline-flex items-center space-x-2 transition-all active:scale-95 disabled:opacity-50"
+                  className="bg-molten hover:opacity-90 text-ink font-bold text-xs px-6 py-3 rounded-none  inline-flex items-center space-x-2 transition-all active:scale-95 disabled:opacity-50"
                 >
                   {isGeneratingFileDirectory ? (
                     <>
-                      <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin"></div>
+                      <div className="w-3.5 h-3.5 rounded-full border-2 border-ink/40 border-t-ink animate-spin"></div>
                       <span>Planning File Directory...</span>
                     </>
                   ) : (
@@ -514,10 +478,10 @@ export default function ProjectStudioPage() {
                 {project.blueprint && (
                   <div className="space-y-3">
                     <div>
-                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                        <Layers className="w-4 h-4 text-indigo-400" /> Proposed Product
+                      <h3 className="text-sm font-bold text-bone flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-molten" /> Proposed Product
                       </h3>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
+                      <p className="text-[11px] text-steel mt-0.5">
                         Modify the concept through chat — &quot;make it premium&quot;, &quot;add a dashboard&quot;,
                         &quot;remove the pricing page&quot;, &quot;make it enterprise-ready&quot;.
                       </p>
@@ -541,10 +505,10 @@ export default function ProjectStudioPage() {
 
                 <div className="space-y-3">
                   <div>
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                      <FolderTree className="w-4 h-4 text-cyan-400" /> Proposed File Structure
+                    <h3 className="text-sm font-bold text-bone flex items-center gap-2">
+                      <FolderTree className="w-4 h-4 text-molten" /> Proposed File Structure
                     </h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-[11px] text-steel mt-0.5">
                       The exact file tree Build will generate code for. Refine it, then build.
                     </p>
                   </div>
