@@ -260,4 +260,4 @@ Run [`supabase_schema.sql`](./supabase_schema.sql) to create both tables.
 
 ## License
 
-MIT
+
