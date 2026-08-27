@@ -4,8 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AppRail from '@/components/AppRail';
-import SourceCastDiff from '@/components/SourceCastDiff';
-import { Project } from '@/types';
 import { getCurrentUser, getAuthToken, UserSession } from '@/lib/auth';
 import { ArrowRight } from 'lucide-react';
 
@@ -17,16 +15,9 @@ const TEMPLATES = [
   { name: 'Store', description: 'Build a modern storefront with product listing pages, a product detail view, a cart, and checkout.', targetCustomer: 'Direct-to-consumer brands' },
 ];
 
-function stageOf(p: Project): string {
-  if (p.generatedFiles && p.generatedFiles.length > 0) return 'CAST';
-  if (p.fileDirectory || p.blueprint) return 'BLUEPRINT';
-  if (p.analysis) return 'ANALYZED';
-  return 'DRAFT';
-}
-
 // Shown while /api/analyze runs — a timed readout of the steps actually
 // happening server-side (scrape → extract → analyse), not a spinner.
-function CastingConsole({ url, intent }: { url: string; intent: string }) {
+function CastingConsole({ url }: { url: string }) {
   const STEPS = url
     ? ['Reading the site', 'Extracting signals', 'Arguing the strategy', 'Writing the analysis']
     : ['Reading the brief', 'Framing the market', 'Arguing the strategy', 'Writing the analysis'];
@@ -61,21 +52,9 @@ function CastingConsole({ url, intent }: { url: string; intent: string }) {
   );
 }
 
-function ago(iso: string): string {
-  const d = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(d / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
-
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserSession | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [description, setDescription] = useState('');
@@ -89,18 +68,11 @@ export default function DashboardPage() {
   useEffect(() => {
     (async () => {
       const u = await getCurrentUser();
-      if (!u) { router.push('/login?redirect=/dashboard'); return; }
-      setUser(u);
-      try {
-        const token = getAuthToken();
-        const res = await fetch('/api/projects', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-        const data = await res.json();
-        if (data.success && data.projects) setProjects(data.projects);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+      if (!u) {
+        router.push('/login?redirect=/dashboard');
+        return;
       }
+      setUser(u);
     })();
   }, [router]);
 
@@ -137,20 +109,20 @@ export default function DashboardPage() {
     }
   };
 
-  const featured = projects.find((p) => p.analysis);
-
   return (
     <div className="min-h-screen flex flex-col bg-ink text-bone md:pl-24">
       <AppRail />
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-5 sm:px-8 pt-16 pb-28 md:py-16">
-        {/* ── 01 — the cast input, as the page ─────────────────────── */}
         <section className="recast-in">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <span className="section-num">01 — WHAT ARE WE CASTING?</span>
-            <span className="mono-label hidden sm:block">
-              {user?.name ? `OPERATOR / ${user.name}` : ''}
-            </span>
+            <div className="flex items-center gap-4">
+              <span className="mono-label hidden sm:block">{user?.name ? `OPERATOR / ${user.name}` : ''}</span>
+              <Link href="/dashboard/casts" className="mono-label hover:text-molten transition-colors">
+                all casts →
+              </Link>
+            </div>
           </div>
 
           <h1 className="display-xl font-display text-[2.6rem] sm:text-[3.6rem] mt-4 text-bone">
@@ -158,7 +130,7 @@ export default function DashboardPage() {
           </h1>
 
           {/* template toggles */}
-          <div className="mt-7 flex flex-wrap gap-0 border border-line w-fit">
+          <div id="templates" className="mt-7 scroll-mt-24 flex flex-wrap gap-0 border border-line w-fit">
             {TEMPLATES.map((t, i) => (
               <button
                 key={t.name}
@@ -172,136 +144,60 @@ export default function DashboardPage() {
           </div>
 
           {submitting ? (
-            <CastingConsole url={websiteUrl.trim()} intent={description.trim()} />
+            <CastingConsole url={websiteUrl.trim()} />
           ) : (
-          <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-            <div className="grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.4fr)] gap-x-4 gap-y-5 items-end">
-              <label className="block">
-                <span className="mono-label">Source URL — optional</span>
-                <input
-                  ref={urlRef}
-                  value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
-                  placeholder="stripe.com"
-                  className="cast-input w-full mt-2 py-2 text-sm"
-                />
-              </label>
-              <span className="hidden sm:block pb-2 text-molten"><ArrowRight className="w-5 h-5" strokeWidth={2.5} /></span>
-              <label className="block">
-                <span className="mono-label">Intent — what to build</span>
-                <input
-                  ref={descRef}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  required
-                  placeholder="a modern SaaS version for small businesses"
-                  className="cast-input w-full mt-2 py-2 text-sm"
-                />
-              </label>
-            </div>
-
-            <label className="block max-w-md">
-              <span className="mono-label">Target customer — optional</span>
-              <input
-                value={targetCustomer}
-                onChange={(e) => setTargetCustomer(e.target.value)}
-                placeholder="small business owners"
-                className="cast-input w-full mt-2 py-2 text-sm"
-              />
-            </label>
-
-            {formError && (
-              <div className="border-l-2 border-molten pl-3 py-1.5 recast-in">
-                <div className="mono-label !text-molten">could not recast</div>
-                <p className="text-[12px] text-bone/90 mt-0.5 leading-snug">{formError}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={!description.trim()}
-              className="group inline-flex items-center gap-3 bg-molten text-ink px-6 py-3 font-mono font-bold text-xs uppercase tracking-[0.14em] disabled:opacity-40 transition-opacity"
-            >
-              Recast
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" strokeWidth={2.75} />
-            </button>
-          </form>
-          )}
-        </section>
-
-        {/* ── 02 — recent casts ───────────────────────────────────── */}
-        <section id="projects" className="mt-20 scroll-mt-24">
-          <div className="rule-b border-line pb-3 flex items-baseline justify-between">
-            <span className="section-num">02 — RECENT CASTS</span>
-            <span className="mono-label">{projects.length} total</span>
-          </div>
-
-          {loading ? (
-            <p className="mono-label py-10">loading…</p>
-          ) : projects.length === 0 ? (
-            <p className="mono-label py-10 !tracking-normal !text-[11px]">
-              No casts yet. Use the console above to run your first one.
-            </p>
-          ) : (
-            <>
-              {featured && (
-                <div id="templates" className="scroll-mt-24 py-6 rule-b border-line">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="mono-label !text-bone">
-                      LATEST — {featured.blueprint?.productName || featured.name}
-                    </span>
-                    <Link href={`/projects/${featured.id}`} className="mono-label !text-molten hover:underline">
-                      open →
-                    </Link>
-                  </div>
-                  <SourceCastDiff
-                    compact
-                    sourceLabel={featured.websiteUrl ? 'Source site' : 'Brief'}
-                    source={[
-                      { k: 'url', v: featured.websiteUrl || 'idea-only' },
-                      { k: 'title', v: featured.scrapedInfo?.title || featured.description.slice(0, 60) },
-                      { k: 'signals', v: `${featured.scrapedInfo?.headings?.length ?? 0} headings scraped` },
-                    ]}
-                    castLabel="Product"
-                    cast={[
-                      { k: 'name', v: featured.blueprint?.productName || '—' },
-                      { k: 'tagline', v: featured.blueprint?.tagline || featured.analysis?.summary?.slice(0, 60) || '—' },
-                      { k: 'features', v: `${featured.blueprint?.features?.length ?? featured.analysis?.keyFeatures?.length ?? 0} proposed` },
-                    ]}
+            <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+              <div className="grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.4fr)] gap-x-4 gap-y-5 items-end">
+                <label className="block">
+                  <span className="mono-label">Source URL — optional</span>
+                  <input
+                    ref={urlRef}
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    placeholder="stripe.com"
+                    className="cast-input w-full mt-2 py-2 text-sm"
                   />
+                </label>
+                <span className="hidden sm:block pb-2 text-molten"><ArrowRight className="w-5 h-5" strokeWidth={2.5} /></span>
+                <label className="block">
+                  <span className="mono-label">Intent — what to build</span>
+                  <input
+                    ref={descRef}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    required
+                    placeholder="a modern SaaS version for small businesses"
+                    className="cast-input w-full mt-2 py-2 text-sm"
+                  />
+                </label>
+              </div>
+
+              <label className="block max-w-md">
+                <span className="mono-label">Target customer — optional</span>
+                <input
+                  value={targetCustomer}
+                  onChange={(e) => setTargetCustomer(e.target.value)}
+                  placeholder="small business owners"
+                  className="cast-input w-full mt-2 py-2 text-sm"
+                />
+              </label>
+
+              {formError && (
+                <div className="border-l-2 border-molten pl-3 py-1.5 recast-in">
+                  <div className="mono-label !text-molten">could not recast</div>
+                  <p className="text-[12px] text-bone/90 mt-0.5 leading-snug">{formError}</p>
                 </div>
               )}
 
-              {/* ledger */}
-              <div className="mt-4">
-                <div className="grid grid-cols-[2rem_1fr_1fr_5.5rem_5rem_1.5rem] gap-3 py-2 rule-b border-line mono-label">
-                  <span>#</span><span>Name</span><span className="hidden sm:block">Source</span><span>Stage</span><span>Run</span><span />
-                </div>
-                {projects.map((p, i) => {
-                  const stage = stageOf(p);
-                  return (
-                    <Link
-                      key={p.id}
-                      href={`/projects/${p.id}`}
-                      className="grid grid-cols-[2rem_1fr_1fr_5.5rem_5rem_1.5rem] gap-3 py-3 rule-b border-line items-center hover:bg-white/[0.03] transition-colors group"
-                    >
-                      <span className="font-mono text-[11px] text-steel">{String(i + 1).padStart(2, '0')}</span>
-                      <span className="text-[13px] text-bone truncate group-hover:text-molten transition-colors">
-                        {p.blueprint?.productName || p.name}
-                      </span>
-                      <span className="hidden sm:block font-mono text-[11px] text-steel truncate">
-                        {p.websiteUrl || 'idea-only'}
-                      </span>
-                      <span className={`font-mono text-[10px] tracking-wider ${stage === 'CAST' ? 'text-molten' : 'text-steel'}`}>
-                        {stage}
-                      </span>
-                      <span className="font-mono text-[10px] text-steel">{ago(p.updatedAt)}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-steel group-hover:text-molten group-hover:translate-x-0.5 transition-all" />
-                    </Link>
-                  );
-                })}
-              </div>
-            </>
+              <button
+                type="submit"
+                disabled={!description.trim()}
+                className="group inline-flex items-center gap-3 bg-molten text-ink px-6 py-3 font-mono font-bold text-xs uppercase tracking-[0.14em] disabled:opacity-40 transition-opacity"
+              >
+                Recast
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" strokeWidth={2.75} />
+              </button>
+            </form>
           )}
         </section>
       </main>

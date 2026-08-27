@@ -4,14 +4,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { getCurrentUser, logoutUser, UserSession } from '@/lib/auth';
-import { LayoutGrid, Sparkles, FolderKanban, Shapes, LogOut } from 'lucide-react';
+import { Sparkles, FolderKanban, Shapes, LogOut } from 'lucide-react';
 
 // Floating left icon rail (bottom bar on mobile) + floating brand and sign-out,
 // modelled on the reference app's navigation. Content is Recast's.
 const ITEMS = [
-  { href: '/dashboard', label: 'Console', icon: LayoutGrid, match: (p: string) => p === '/dashboard' },
-  { href: '/dashboard', label: 'New Cast', icon: Sparkles, match: () => false },
-  { href: '/dashboard#projects', label: 'Casts', icon: FolderKanban, match: () => false },
+  { href: '/dashboard', label: 'New Cast', icon: Sparkles, match: (p: string) => p === '/dashboard' },
+  { href: '/dashboard/casts', label: 'Casts', icon: FolderKanban, match: (p: string) => p === '/dashboard/casts' },
   { href: '/dashboard#templates', label: 'Templates', icon: Shapes, match: () => false },
 ];
 
