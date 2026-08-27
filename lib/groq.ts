@@ -40,6 +40,17 @@ function isRateLimitError(err: any): boolean {
   return err?.status === 429 || err?.code === 'rate_limit_exceeded';
 }
 
+// A user-facing sentence for a Groq 429 — distinguishes the daily token cap
+// (free tier: 200k tokens/day, resets 00:00 UTC) from the short per-minute
+// window.
+function rateLimitMessage(err: any): string {
+  const raw = String(err?.error?.message || err?.message || '').toLowerCase();
+  if (raw.includes('per day') || raw.includes('tpd') || raw.includes('tokens per day')) {
+    return 'Groq’s free-tier daily token limit is used up for today (resets at 00:00 UTC). The assistant will work again after the reset, or upgrade the Groq plan.';
+  }
+  return 'Groq is rate-limiting right now (free tier). Wait about 30 seconds and send that again.';
+}
+
 const groq = isGroqConfigured
   ? new OpenAI({
       apiKey: groqApiKey,
@@ -411,9 +422,10 @@ Respond ONLY with valid JSON matching this exact schema:
       response_format: { type: 'json_object' },
       temperature: 0.4,
       // The model must echo BOTH full objects (blueprint + file directory) plus
-      // a message — for a large file tree that overruns Groq's default output
-      // cap and truncates the JSON. Give it real headroom.
-      max_tokens: 32000,
+      // a message. Give it headroom for a large file tree — but stay under the
+      // free tier's 30k tokens/minute ceiling so the request itself isn't
+      // auto-rejected.
+      max_tokens: 16000,
     });
 
     const content = response.choices[0]?.message?.content || '{}';
@@ -447,15 +459,13 @@ Respond ONLY with valid JSON matching this exact schema:
     };
   } catch (err) {
     console.error('Groq Product Plan Refine Error:', err);
-    const rateLimited = isRateLimitError(err);
-    const parseFail = err instanceof SyntaxError;
     return {
       applied: false,
       updatedBlueprint: currentBlueprint,
       updatedFileDirectory: currentFileDirectory,
-      assistantMessage: rateLimited
-        ? 'Groq is rate-limiting right now (free tier). Wait about 30 seconds and send that again.'
-        : parseFail
+      assistantMessage: isRateLimitError(err)
+        ? rateLimitMessage(err)
+        : err instanceof SyntaxError
         ? 'The response came back malformed — usually the plan is too large. Try one small change at a time.'
         : 'Sorry, I ran into an error trying to process that. Please try rephrasing your request.',
     };
@@ -540,7 +550,9 @@ Respond ONLY with valid JSON matching this exact schema:
     return {
       applied: false,
       updatedFileDirectory: current,
-      assistantMessage: 'Sorry, I ran into an error trying to process that. Please try rephrasing your request.',
+      assistantMessage: isRateLimitError(err)
+        ? rateLimitMessage(err)
+        : 'Sorry, I ran into an error trying to process that. Please try rephrasing your request.',
     };
   }
 }
@@ -671,7 +683,9 @@ Respond ONLY with valid JSON matching this exact schema:
     return {
       applied: false,
       updatedBlueprint: current,
-      assistantMessage: 'Sorry, I ran into an error trying to process that. Please try rephrasing your request.',
+      assistantMessage: isRateLimitError(err)
+        ? rateLimitMessage(err)
+        : 'Sorry, I ran into an error trying to process that. Please try rephrasing your request.',
     };
   }
 }
@@ -769,7 +783,11 @@ Respond ONLY with valid JSON matching this exact schema:
     return {
       applied: false,
       updatedAnalysis: currentAnalysis,
-      assistantMessage: 'Sorry, I ran into an error trying to process that. Please try rephrasing your request.',
+      assistantMessage: isRateLimitError(err)
+        ? rateLimitMessage(err)
+        : err instanceof SyntaxError
+        ? 'The response came back malformed. Try rephrasing, or send a smaller change.'
+        : 'Sorry, I ran into an error trying to process that. Please try rephrasing your request.',
     };
   }
 }
