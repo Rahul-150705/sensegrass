@@ -8,6 +8,7 @@ import FileDirectoryView from '@/components/FileDirectoryView';
 import BlueprintView from '@/components/BlueprintView';
 import StageChat from '@/components/StageChat';
 import SourceCastDiff from '@/components/SourceCastDiff';
+import PlanSkeleton from '@/components/PlanSkeleton';
 import { LimelightNav } from '@/components/ui/limelight-nav';
 import BuildProgress, { BuildCategoryStatus } from '@/components/BuildProgress';
 import PipelineStepper from '@/components/PipelineStepper';
@@ -477,7 +478,9 @@ export default function ProjectStudioPage() {
           </div>
         ) : activeTab === 'fileDirectory' && project.analysis ? (
           <div className="max-w-7xl mx-auto space-y-6">
-            {!project.fileDirectory ? (
+            {isGeneratingFileDirectory ? (
+              <PlanSkeleton />
+            ) : !project.fileDirectory ? (
               <div className="panel max-w-xl mx-auto p-8 recast-in">
                 <span className="section-num">03 — BLUEPRINT + FILE TREE</span>
                 <h3 className="font-display text-lg font-semibold text-bone mt-2">Draw the blueprint</h3>
@@ -490,7 +493,7 @@ export default function ProjectStudioPage() {
                   disabled={isGeneratingFileDirectory}
                   className="mt-5 inline-flex items-center gap-2 bg-molten text-ink px-5 py-2.5 font-mono font-bold text-[10px] uppercase tracking-[0.14em] disabled:opacity-40 transition-opacity"
                 >
-                  {isGeneratingFileDirectory ? 'Planning…' : 'Generate'}
+                  Generate
                   <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.75} />
                 </button>
               </div>
