@@ -109,14 +109,15 @@ export async function fetchAndExtractWebsiteContent(urlInput: string): Promise<S
   }
 }
 
+// A scrape failure — carries the reason, and NO fabricated content. Callers
+// must check `success` and bail out rather than pass this to the LLM.
 function getFallbackContent(url: string, reason: string): ScrapedContent {
-  const domain = url.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
   return {
     url,
-    title: `${domain} (Scraping Fallback)`,
-    description: `Unable to directly scrape HTML due to (${reason}). Analyzing product structure based on domain pattern and user requirements.`,
-    headings: ['Features', 'Solutions', 'Pricing', 'About Product'],
-    mainText: `Domain ${domain} represents a web application. Analysis synthesized from user specifications and domain positioning.`,
+    title: '',
+    description: '',
+    headings: [],
+    mainText: '',
     success: false,
     error: reason,
   };
