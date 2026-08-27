@@ -180,9 +180,28 @@ export default function ProjectStudioPage() {
     }
   };
 
+  const [isRetryingBuild, setIsRetryingBuild] = useState(false);
+
+  const enterStudio = () => {
+    setBuildCategories([]);
+    setPipelineStep(5);
+    setActiveTab('vscode');
+    setIsFullscreen(true);
+  };
+
+  // Run a set of categories sequentially. Returns true only if every one
+  // succeeded.
+  const runCategories = async (cats: { type: string; label: string }[]): Promise<boolean> => {
+    let allOk = true;
+    for (const cat of cats) {
+      const ok = await buildCategory(cat.type, cat.label);
+      if (!ok) allOk = false;
+    }
+    return allOk;
+  };
+
   // File directory is verified -> build. One category at a time, against the
-  // EXACT file list the user already reviewed, so progress is real (not
-  // simulated) and Build never invents a different file list.
+  // EXACT file list the user already reviewed.
   const handleBuildProduct = async () => {
     if (!project?.fileDirectory || isBuildingProduct) return;
 
@@ -196,14 +215,28 @@ export default function ProjectStudioPage() {
     setBuildCategories(initial);
     setIsBuildingProduct(true);
 
-    for (const cat of initial) {
-      await buildCategory(cat.type, cat.label);
-    }
+    const allOk = await runCategories(initial);
 
     setIsBuildingProduct(false);
-    setPipelineStep(5);
-    setActiveTab('vscode');
-    setIsFullscreen(true);
+    // Only drop into the studio if the whole build succeeded. Otherwise keep
+    // BuildProgress up so the user can retry just the failed categories.
+    if (allOk) enterStudio();
+  };
+
+  const handleRetryFailed = async () => {
+    if (isRetryingBuild || isBuildingProduct) return;
+    const failed = buildCategories.filter((c) => c.status === 'error');
+    if (failed.length === 0) return;
+
+    setIsRetryingBuild(true);
+    setBuildCategories((prev) =>
+      prev.map((c) => (c.status === 'error' ? { ...c, status: 'pending' } : c))
+    );
+
+    const allOk = await runCategories(failed.map((c) => ({ type: c.type, label: c.label })));
+
+    setIsRetryingBuild(false);
+    if (allOk) enterStudio();
   };
 
   const handleSendMessage = async (userMsg: string) => {
@@ -461,8 +494,14 @@ export default function ProjectStudioPage() {
                   <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.75} />
                 </button>
               </div>
-            ) : isBuildingProduct ? (
-              <BuildProgress categories={buildCategories} />
+            ) : isBuildingProduct || buildCategories.some((c) => c.status === 'error') ? (
+              <BuildProgress
+                categories={buildCategories}
+                building={isBuildingProduct}
+                retrying={isRetryingBuild}
+                onRetry={handleRetryFailed}
+                onContinue={enterStudio}
+              />
             ) : (
               /* One assistant for the whole product plan — blueprint + file tree */
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 items-start">
