@@ -14,6 +14,20 @@ import path from 'path';
 const db = isAdminConfigured ? supabaseAdmin : supabase;
 const isDbConfigured = isAdminConfigured || isSupabaseConfigured;
 
+// Columns added by later migrations that an out-of-date Supabase schema may
+// not have yet (e.g. projects.file_directory). The first time an upsert hits a
+// 42703 "column does not exist" for one of these, we remember it and stop
+// sending it — so the rest of the write still lands in Supabase instead of the
+// whole thing silently falling back to the local JSON file store. Run
+// supabase_schema.sql to add the columns for real and make this a no-op.
+const knownMissingProjectColumns = new Set<string>();
+
+function missingColumnFromError(err: any): string | null {
+  if (!err || err.code !== '42703') return null;
+  const m = /column\s+(?:[\w".]+\.)?"?([a-z_]+)"?\s+.*does not exist/i.exec(err.message || '');
+  return m ? m[1] : null;
+}
+
 // ─── Persistent JSON File Fallback (when Supabase is offline) ───────────────
 const DATA_DIR = path.join(process.cwd(), '.data');
 const PROJECTS_FILE = path.join(DATA_DIR, 'projects.json');
@@ -39,6 +53,17 @@ function readProjectsFile(): Record<string, Project> {
 function writeProjectsFile(data: Record<string, Project>) {
   ensureDataDir();
   fs.writeFileSync(PROJECTS_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+
+// Never throws — used by the read paths to overlay mirrored fields when the
+// Supabase schema is out of date. On a read-only serverless FS this just
+// returns {} (the correct fix there is to run supabase_schema.sql).
+function safeReadProjectsFile(): Record<string, Project> {
+  try {
+    return readProjectsFile();
+  } catch {
+    return {};
+  }
 }
 
 function readChatsFile(): Record<string, ChatMessage[]> {
@@ -68,30 +93,81 @@ export async function saveProject(project: Partial<Project> & { id: string }): P
         .eq('id', project.id)
         .single();
 
-      const { data, error } = await db
-        .from('projects')
-        .upsert({
-          id: project.id,
-          user_id: project.userId ?? existingRow?.user_id ?? null,
-          name: project.name ?? existingRow?.name ?? 'Untitled SaaS Project',
-          website_url: project.websiteUrl ?? existingRow?.website_url ?? '',
-          description: project.description ?? existingRow?.description ?? '',
-          target_customer: project.targetCustomer ?? existingRow?.target_customer ?? '',
-          analysis: project.analysis !== undefined ? project.analysis : existingRow?.analysis ?? null,
-          blueprint: project.blueprint !== undefined ? project.blueprint : existingRow?.blueprint ?? null,
-          ui_code: project.uiCode !== undefined ? project.uiCode : existingRow?.ui_code ?? null,
-          scraped_info: project.scrapedInfo !== undefined ? project.scrapedInfo : existingRow?.scraped_info ?? null,
-          generated_files: project.generatedFiles !== undefined ? project.generatedFiles : existingRow?.generated_files ?? null,
-          file_directory: project.fileDirectory !== undefined ? project.fileDirectory : existingRow?.file_directory ?? null,
-          updated_at: now,
-        })
-        .select()
-        .single();
+      const fullRow: Record<string, any> = {
+        id: project.id,
+        user_id: project.userId ?? existingRow?.user_id ?? null,
+        name: project.name ?? existingRow?.name ?? 'Untitled SaaS Project',
+        website_url: project.websiteUrl ?? existingRow?.website_url ?? '',
+        description: project.description ?? existingRow?.description ?? '',
+        target_customer: project.targetCustomer ?? existingRow?.target_customer ?? '',
+        analysis: project.analysis !== undefined ? project.analysis : existingRow?.analysis ?? null,
+        blueprint: project.blueprint !== undefined ? project.blueprint : existingRow?.blueprint ?? null,
+        ui_code: project.uiCode !== undefined ? project.uiCode : existingRow?.ui_code ?? null,
+        scraped_info: project.scrapedInfo !== undefined ? project.scrapedInfo : existingRow?.scraped_info ?? null,
+        generated_files: project.generatedFiles !== undefined ? project.generatedFiles : existingRow?.generated_files ?? null,
+        file_directory: project.fileDirectory !== undefined ? project.fileDirectory : existingRow?.file_directory ?? null,
+        updated_at: now,
+      };
 
-      if (!error && data) {
+      // Send everything the schema is known to accept; retry-strip any column
+      // the DB reports as missing so a stale schema still persists the rest.
+      const row: Record<string, any> = {};
+      for (const [k, v] of Object.entries(fullRow)) {
+        if (!knownMissingProjectColumns.has(k)) row[k] = v;
+      }
+
+      let data: any = null;
+      let lastError: any = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const res = await db.from('projects').upsert(row).select().single();
+        if (!res.error) { data = res.data; break; }
+        lastError = res.error;
+        const missing = missingColumnFromError(res.error);
+        if (missing && missing in row && missing !== 'id') {
+          knownMissingProjectColumns.add(missing);
+          delete row[missing];
+          console.warn(
+            `[STORAGE] projects.${missing} is missing from the Supabase schema — run supabase_schema.sql. ` +
+            `Persisting the rest to Supabase and mirroring "${missing}" to the local file store.`
+          );
+          continue;
+        }
+        break;
+      }
+
+      if (data) {
+        // If any column was stripped, mirror the COMPLETE record (including the
+        // stripped fields) to the file store so getProjectById can overlay them
+        // back — otherwise e.g. generated_files would read back as null forever.
+        if (knownMissingProjectColumns.size > 0) {
+          try {
+            const store = readProjectsFile();
+            store[project.id] = {
+              id: project.id,
+              userId: fullRow.user_id ?? undefined,
+              name: fullRow.name,
+              websiteUrl: fullRow.website_url,
+              description: fullRow.description,
+              targetCustomer: fullRow.target_customer,
+              analysis: fullRow.analysis,
+              blueprint: fullRow.blueprint,
+              uiCode: fullRow.ui_code,
+              scrapedInfo: fullRow.scraped_info,
+              generatedFiles: fullRow.generated_files,
+              fileDirectory: fullRow.file_directory,
+              chatHistory: store[project.id]?.chatHistory || [],
+              createdAt: data.created_at || store[project.id]?.createdAt || now,
+              updatedAt: now,
+            };
+            writeProjectsFile(store);
+          } catch (e: any) {
+            console.warn('[STORAGE] could not mirror project to file store:', e?.message);
+          }
+        }
+
         return {
           id: data.id,
-          userId: data.user_id,
+          userId: data.user_id ?? fullRow.user_id ?? undefined,
           name: data.name,
           websiteUrl: data.website_url,
           description: data.description,
@@ -100,13 +176,13 @@ export async function saveProject(project: Partial<Project> & { id: string }): P
           blueprint: data.blueprint,
           uiCode: data.ui_code,
           scrapedInfo: data.scraped_info,
-          generatedFiles: data.generated_files,
-          fileDirectory: data.file_directory,
+          generatedFiles: data.generated_files ?? fullRow.generated_files ?? null,
+          fileDirectory: data.file_directory ?? fullRow.file_directory ?? null,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
         };
       }
-      console.warn('Supabase saveProject fallback:', error?.message);
+      console.warn('Supabase saveProject fallback:', lastError?.message);
     } catch (err: any) {
       console.warn('Supabase saveProject error, using file fallback:', err?.message);
     }
@@ -153,13 +229,20 @@ export async function getProjectById(id: string, userId?: string): Promise<Proje
 
       if (!error && data) {
         if (userId && data.user_id && data.user_id !== userId) return null;
+
+        // A stale schema returns rows without newer columns (undefined, not
+        // null). saveProject mirrors those fields to the file store — overlay
+        // them here so generated code / the file directory survive a reload.
+        const needsOverlay = data.generated_files === undefined || data.file_directory === undefined;
+        const mirrored = needsOverlay ? safeReadProjectsFile()[id] : undefined;
+
         const { data: chatData } = await db
           .from('chat_messages')
           .select('*')
           .eq('project_id', id)
           .order('created_at', { ascending: true });
 
-        const allMessages: ChatMessage[] = (chatData || []).map((c: any) => ({
+        let allMessages: ChatMessage[] = (chatData || []).map((c: any) => ({
           id: c.id,
           projectId: c.project_id,
           role: c.role,
@@ -170,6 +253,24 @@ export async function getProjectById(id: string, userId?: string): Promise<Proje
           stage: (c.stage || 'studio') as ChatStage,
           createdAt: c.created_at,
         }));
+
+        // When chat_messages.stage is missing, addChatMessage inserts fail and
+        // fall back to the file store — so the strategy / blueprint / file-
+        // directory transcripts only exist there. Merge them in (dedupe by id).
+        const chatStaleSchema = (chatData || []).some((c: any) => c.stage === undefined) || (chatData || []).length === 0;
+        if (chatStaleSchema) {
+          try {
+            const fileChats = readChatsFile()[id] || [];
+            if (fileChats.length) {
+              const seen = new Set(allMessages.map((m) => m.id));
+              allMessages = [...allMessages, ...fileChats.filter((m) => !seen.has(m.id))].sort(
+                (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              );
+            }
+          } catch {
+            // read-only FS or no file store — nothing to merge.
+          }
+        }
 
         return {
           id: data.id,
@@ -182,8 +283,8 @@ export async function getProjectById(id: string, userId?: string): Promise<Proje
           blueprint: data.blueprint,
           uiCode: data.ui_code,
           scrapedInfo: data.scraped_info,
-          generatedFiles: data.generated_files,
-          fileDirectory: data.file_directory,
+          generatedFiles: data.generated_files ?? mirrored?.generatedFiles ?? null,
+          fileDirectory: data.file_directory ?? mirrored?.fileDirectory ?? null,
           chatHistory: allMessages.filter((m) => m.stage === 'studio' || !m.stage),
           strategyChatHistory: allMessages.filter((m) => m.stage === 'strategy'),
           blueprintChatHistory: allMessages.filter((m) => m.stage === 'blueprint'),
@@ -227,6 +328,12 @@ export async function getAllProjects(userId?: string): Promise<Project[]> {
       const { data, error } = await query;
 
       if (!error && data) {
+        // Overlay file-store mirror for columns a stale schema doesn't return
+        // (see getProjectById for why).
+        const needsOverlay = data.some(
+          (d: any) => d.generated_files === undefined || d.file_directory === undefined
+        );
+        const mirror: Record<string, Project> = needsOverlay ? safeReadProjectsFile() : {};
         return data.map((d: any) => ({
           id: d.id,
           userId: d.user_id,
@@ -238,8 +345,8 @@ export async function getAllProjects(userId?: string): Promise<Project[]> {
           blueprint: d.blueprint,
           uiCode: d.ui_code,
           scrapedInfo: d.scraped_info,
-          generatedFiles: d.generated_files,
-          fileDirectory: d.file_directory,
+          generatedFiles: d.generated_files ?? mirror[d.id]?.generatedFiles ?? null,
+          fileDirectory: d.file_directory ?? mirror[d.id]?.fileDirectory ?? null,
           createdAt: d.created_at,
           updatedAt: d.updated_at,
         }));
