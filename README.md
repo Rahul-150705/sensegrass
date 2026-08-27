@@ -10,8 +10,8 @@
 ProductForge is an autonomous multi-agent SaaS engine. You provide a public URL and a product vision — the system:
 
 1. **Scrapes** the target website (server-side Cheerio HTML extraction)
-2. **Analyzes** the extracted content using **Groq API (Llama 3.3 70B)** to generate a strategic product analysis and full-stack architecture file tree
-3. **Generates code** for every frontend and backend file using **Claude Code Agent (Claude 3.5 Sonnet)**
+2. **Analyzes** the extracted content using **Groq API (GPT-OSS 120B)** to generate a strategic product analysis and full-stack architecture file tree
+3. **Generates code** for every frontend and backend file — also on **Groq (GPT-OSS 120B)**
 4. Presents the output in a **VS Code-style multi-file IDE** with:
    - File Explorer (Frontend / Backend / Config tabs)
    - Line-numbered code viewer with file tabs and breadcrumbs
@@ -35,14 +35,9 @@ User Input (URL + Vision Prompt)
            ▼
 ┌─────────────────────────┐
 │  Groq API               │  lib/groq.ts
-│  llama-3.3-70b-versatile│  → Product Analysis JSON
+│  openai/gpt-oss-120b   │  → Product Analysis JSON
 │                         │  → Full-Stack File Tree Plan
-└──────────┬──────────────┘
-           │ fileTreePlan[]
-           ▼
-┌─────────────────────────┐
-│  Claude Code Agent      │  lib/claude.ts
-│  claude-3-5-sonnet      │  → Writes code for every file
+│                         │  → Writes code for every file
 └──────────┬──────────────┘
            │ generatedFiles[]
            ▼
@@ -66,9 +61,8 @@ User Input (URL + Vision Prompt)
 | Framework | Next.js 14 (App Router) |
 | Language | TypeScript |
 | Styling | Tailwind CSS |
-| Primary AI (Analysis) | Groq API — `llama-3.3-70b-versatile` |
-| Secondary AI (Code Gen) | Anthropic Claude — `claude-3-5-sonnet-20241022` |
-| Fallback AI | OpenAI GPT-4o |
+| AI Provider (Analysis + Code Gen) | Groq API — `openai/gpt-oss-120b` |
+| Fallback AI (if Groq unset) | OpenAI `gpt-4o-mini` |
 | Database | Supabase (PostgreSQL) |
 | Auth | Supabase Auth |
 | Web Scraping | Cheerio (server-side) |
@@ -82,8 +76,7 @@ User Input (URL + Vision Prompt)
 - Node.js 18+
 - npm or yarn
 - A [Supabase](https://supabase.com) project
-- A [Groq](https://console.groq.com) API key
-- An [Anthropic](https://console.anthropic.com) API key (optional — for Claude Code agent)
+- A [Groq](https://console.groq.com) API key — required; this is the only AI provider the app uses
 
 ### 1. Clone the repo
 ```bash
@@ -126,9 +119,8 @@ Open [http://localhost:3000](http://localhost:3000).
 |----------|----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ Yes | Your Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ Yes | Supabase anonymous public key |
-| `GROQ_API_KEY` | ✅ Yes | Groq API key for Llama 3.3 70B (primary AI engine) |
-| `ANTHROPIC_API_KEY` | ⚡ Recommended | Claude 3.5 Sonnet for full-stack code generation |
-| `OPENAI_API_KEY` | Optional | OpenAI fallback if Claude is not configured |
+| `GROQ_API_KEY` | ✅ Yes | Groq API key for GPT-OSS 120B — the only AI provider (analysis, blueprint, and code generation) |
+| `OPENAI_API_KEY` | Optional | Last-resort fallback if Groq is not configured |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✅ Yes (if using Supabase) | Verifies user JWTs server-side and bypasses RLS for authorized API access. Without it, all authenticated routes reject requests. |
 
 ---
@@ -171,9 +163,8 @@ Run [`supabase_schema.sql`](./supabase_schema.sql) to create both tables.
 
 | Model | Provider | Role |
 |-------|----------|------|
-| `llama-3.3-70b-versatile` | Groq | Analyzes scraped web text + user prompt → JSON product analysis + full-stack file tree plan |
-| `claude-3-5-sonnet-20241022` | Anthropic | Writes production-quality code for every generated file (frontend + backend) |
-| `gpt-4o` | OpenAI | Fallback if Claude key is not set |
+| `openai/gpt-oss-120b` | Groq | Analyzes scraped web text + user prompt → JSON product analysis + full-stack file tree plan; also writes production code for every generated file (frontend + backend) |
+| `gpt-4o-mini` | OpenAI | Fallback if `GROQ_API_KEY` is not set (analysis, blueprint, and starter UI only — not category code generation) |
 
 ---
 
@@ -182,9 +173,14 @@ Run [`supabase_schema.sql`](./supabase_schema.sql) to create both tables.
 | Route | Method | Description |
 |-------|--------|-------------|
 | `/api/analyze` | POST | Scrape website + Groq AI analysis + save project |
-| `/api/build` | POST | Generate blueprint + Claude code for all files |
-| `/api/refine` | POST | Copilot: edit files via AI on user request |
+| `/api/strategy/refine` | POST | Strategy-only chat refine (Groq, analysis JSON only) |
+| `/api/file-directory/generate` | POST | Generate the product blueprint + the reviewable file tree |
+| `/api/blueprint/refine` | POST | "Modify the proposed product" chat — name / features / navigation / pages / UI direction only |
+| `/api/file-directory/refine` | POST | Chat refine of the planned file tree / routes only |
+| `/api/build` | POST | Generate Groq code for the finalized file tree, one category at a time |
+| `/api/refine` | POST | Studio copilot: edit blueprint + generated code via AI on user request |
 | `/api/projects` | GET | List current user's projects (auth required) |
+| `/api/projects/[id]` | GET | Fetch a single project (auth + ownership required) |
 | `/api/auth/login` | POST | Sign in with Supabase |
 | `/api/auth/signup` | POST | Create account with Supabase |
 | `/api/health` | GET | System health check (Supabase + storage status) |
@@ -204,10 +200,13 @@ Run [`supabase_schema.sql`](./supabase_schema.sql) to create both tables.
 
 ## Security
 
-- **Authentication**: Supabase Auth with JWT tokens. No fake/unsigned tokens.
-- **Route Protection**: `middleware.ts` at the Next.js edge protects `/dashboard` and `/projects/*` — unauthenticated users are redirected to `/login`.
-- **Data Isolation**: All project queries filter by `user_id` extracted from the JWT `sub` claim. Users cannot access other users' projects.
-- **Session Cookie**: A `session_token` cookie (SameSite=Strict) is set on login for middleware to read.
+- **Authentication**: Supabase Auth with JWT tokens, cryptographically verified server-side on every API route (`supabaseAdmin.auth.getUser`). No fake/unsigned tokens.
+- **Route Protection**: `middleware.ts` at the Next.js edge protects `/dashboard`, `/projects/*`, and `/new` — unauthenticated users are redirected to `/login`. This is a routing hint only; the API routes are the real enforcement point.
+- **Data Isolation**: Project and chat queries filter by the `user_id` from the verified JWT — in the Supabase path *and* the JSON-file fallback. `getProjectById`/`getAllProjects` treat another user's rows as "not found".
+- **Session Cookie**: A `session_token` cookie (`SameSite=Strict`, `Secure` on HTTPS) is set client-side for middleware to read.
+- **Security Headers**: `next.config.mjs` sends `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, and HSTS (production).
+- **SSRF**: User-supplied scrape URLs are DNS-resolved and rejected if they point at private/internal ranges, re-validated at TCP connect time (DNS-rebinding safe), and redirects are followed through the same guard.
+- **Rate Limiting**: Per-user, per-minute in-memory limits on the AI endpoints.
 
 ---
 
@@ -217,7 +216,8 @@ Run [`supabase_schema.sql`](./supabase_schema.sql) to create both tables.
 ├── app/
 │   ├── api/
 │   │   ├── analyze/       # Step 1: Scrape + Groq analysis
-│   │   ├── build/         # Step 2: Blueprint + Claude code gen
+│   │   ├── strategy/      # Strategy-only chat refine (Groq)
+│   │   ├── build/         # Step 2: Blueprint + Groq code gen
 │   │   ├── refine/        # AI copilot file edit
 │   │   ├── projects/      # User project listing (auth-gated)
 │   │   ├── auth/          # Login + signup (Supabase)
@@ -231,9 +231,8 @@ Run [`supabase_schema.sql`](./supabase_schema.sql) to create both tables.
 │   ├── AuthModal.tsx
 │   └── ...
 ├── lib/
-│   ├── groq.ts            # Groq API integration (Llama 3.3 70B)
-│   ├── claude.ts          # Claude Code agent
-│   ├── ai.ts              # Multi-agent orchestrator
+│   ├── groq.ts            # Groq API integration (GPT-OSS 120B) — analysis + code gen
+│   ├── ai.ts              # Provider orchestrator (Groq primary, OpenAI fallback)
 │   ├── scraper.ts         # Server-side Cheerio scraper
 │   ├── store.ts           # Supabase + file storage
 │   ├── auth.ts            # Client auth helpers + session cookie
@@ -249,11 +248,12 @@ Run [`supabase_schema.sql`](./supabase_schema.sql) to create both tables.
 
 ## Known Limitations
 
-- **Live Preview**: The iframe sandbox renders static HTML/CSS only. React JSX is transpiled by string replacement (removing `className=` → `class=`) — complex components with hooks or state won't execute in preview.
-- **Claude Code**: Requires a valid Anthropic API key. Without it, the app falls back to a deterministic mock file generator.
+- **Live Preview**: Renders inside a fully sandboxed `<iframe>` (no scripts, opaque origin) as a rough *static structural approximation* only. The generated file is TSX, not HTML — imports, JSX expressions, hooks, and state do not execute.
+- **Code Generation**: Requires a valid `GROQ_API_KEY`. If it is missing or a generation call fails (bad/truncated response, API error), the build **fails with an error and saves nothing** — it never persists placeholder stub files as a finished build. Files are generated one request per file to avoid whole-category truncation.
 - **File Storage Fallback**: The `.data/` JSON file fallback works in local development only. It will silently fail on Vercel (serverless ephemeral filesystem). Always configure Supabase for deployed environments.
-- **Scraper**: Works on public, server-rendered HTML pages. JavaScript-heavy SPAs (e.g., React apps without SSR) may return minimal content since Cheerio does not execute JS.
-- **Rate Limits**: Groq free tier has rate limits. If you hit `429 Too Many Requests`, add a delay or upgrade your Groq plan.
+- **Scraper**: Works on public, server-rendered HTML pages. JavaScript-heavy SPAs (e.g., React apps without SSR) may return minimal content since Cheerio does not execute JS. Requests that resolve to private/internal addresses are blocked (checked again at connection time to defeat DNS rebinding).
+- **Disk Export / Verifier**: `/api/write-files` and `/api/verify-app` are local-only dev tools; they return `501` when running on a serverless host.
+- **Rate Limits**: Groq free tier has rate limits. If you hit `429 Too Many Requests`, add a delay or upgrade your Groq plan. The app also applies its own per-user, per-minute in-memory rate limit to the AI endpoints (a per-instance abuse speed bump, not a hard quota).
 
 ---
 
