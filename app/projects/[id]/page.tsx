@@ -171,16 +171,29 @@ export default function ProjectStudioPage() {
     }
   };
 
-  // Build a category file-by-file so progress reads "5/10". A single failed
-  // file marks the whole category failed (retry re-runs the whole category).
+  // Build a category file-by-file so progress reads "5/10". RESUMABLE — files
+  // that already generated successfully are skipped, so a retry only does the
+  // ones that are still missing.
   const buildCategory = async (type: string, _label: string): Promise<boolean> => {
     const catFiles = project?.fileDirectory?.files.filter((f) => f.type === type) || [];
+    const alreadyDone = new Set(
+      (project?.generatedFiles || [])
+        .filter((f) => f.content && !f.content.startsWith('// Placeholder generated for'))
+        .map((f) => f.path)
+    );
+    const remaining = catFiles.filter((f) => !alreadyDone.has(f.path));
+    let done = catFiles.length - remaining.length;
+
     setBuildCategories((prev) =>
-      prev.map((c) => (c.type === type ? { ...c, status: 'loading', done: 0, total: catFiles.length } : c))
+      prev.map((c) => (c.type === type ? { ...c, status: 'loading', done, total: catFiles.length } : c))
     );
 
-    let done = 0;
-    for (const f of catFiles) {
+    if (remaining.length === 0) {
+      setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'done', done } : c)));
+      return true;
+    }
+
+    for (const f of remaining) {
       const ok = await buildOneFile(type, f.path);
       if (!ok) {
         setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'error', done } : c)));
@@ -237,20 +250,37 @@ export default function ProjectStudioPage() {
     if (allOk) enterStudio();
   };
 
+  // Enter the studio if — after a retry — every category is now done.
+  const maybeEnterStudio = () => {
+    setBuildCategories((prev) => {
+      if (prev.length > 0 && prev.every((c) => c.status === 'done')) setTimeout(enterStudio, 0);
+      return prev;
+    });
+  };
+
   const handleRetryFailed = async () => {
     if (isRetryingBuild || isBuildingProduct) return;
     const failed = buildCategories.filter((c) => c.status === 'error');
     if (failed.length === 0) return;
 
     setIsRetryingBuild(true);
-    setBuildCategories((prev) =>
-      prev.map((c) => (c.status === 'error' ? { ...c, status: 'pending' } : c))
-    );
-
-    const allOk = await runCategories(failed.map((c) => ({ type: c.type, label: c.label })));
-
+    setBuildCategories((prev) => prev.map((c) => (c.status === 'error' ? { ...c, status: 'pending' } : c)));
+    await runCategories(failed.map((c) => ({ type: c.type, label: c.label })));
     setIsRetryingBuild(false);
-    if (allOk) enterStudio();
+    maybeEnterStudio();
+  };
+
+  // Retry a single failed category — regenerates only its still-missing files.
+  const handleRetryCategory = async (type: string) => {
+    if (isRetryingBuild || isBuildingProduct) return;
+    const cat = buildCategories.find((c) => c.type === type);
+    if (!cat || cat.status !== 'error') return;
+
+    setIsRetryingBuild(true);
+    setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'pending' } : c)));
+    await buildCategory(type, cat.label);
+    setIsRetryingBuild(false);
+    maybeEnterStudio();
   };
 
   const handleSendMessage = async (userMsg: string) => {
@@ -516,6 +546,7 @@ export default function ProjectStudioPage() {
                 building={isBuildingProduct}
                 retrying={isRetryingBuild}
                 onRetry={handleRetryFailed}
+                onRetryCategory={handleRetryCategory}
                 onContinue={enterStudio}
               />
             ) : (

@@ -15,6 +15,7 @@ interface BuildProgressProps {
   building?: boolean;
   retrying?: boolean;
   onRetry?: () => void;
+  onRetryCategory?: (type: string) => void;
   onContinue?: () => void;
 }
 
@@ -30,7 +31,14 @@ function tag(c: BuildCategoryStatus) {
   }
 }
 
-export default function BuildProgress({ categories, building, retrying, onRetry, onContinue }: BuildProgressProps) {
+export default function BuildProgress({
+  categories,
+  building,
+  retrying,
+  onRetry,
+  onRetryCategory,
+  onContinue,
+}: BuildProgressProps) {
   const done = categories.filter((c) => c.status === 'done').length;
   const failed = categories.filter((c) => c.status === 'error').length;
   const active = categories.some((c) => c.status === 'loading' || c.status === 'rate-limited');
@@ -50,6 +58,7 @@ export default function BuildProgress({ categories, building, retrying, onRetry,
       <div className="p-4 sm:p-5 divide-y divide-line">
         {categories.map((c) => {
           const g = tag(c);
+          const canRetryRow = c.status === 'error' && !building && !!onRetryCategory;
           return (
             <div key={c.type} className={`py-3 flex items-baseline gap-4 ${c.status === 'pending' ? 'opacity-40' : ''}`}>
               <span className="font-mono text-[11px] text-bone w-28 shrink-0">{c.label.toLowerCase()}</span>
@@ -57,6 +66,15 @@ export default function BuildProgress({ categories, building, retrying, onRetry,
               <span className="mono-label !text-[9px] ml-auto" style={{ color: g.color }}>
                 {retrying && c.status === 'error' ? '● retrying…' : g.t}
               </span>
+              {canRetryRow && (
+                <button
+                  onClick={() => onRetryCategory!(c.type)}
+                  disabled={retrying}
+                  className="mono-label !text-[9px] border border-line hover:border-molten/50 hover:text-molten px-2 py-0.5 transition-colors disabled:opacity-40 shrink-0"
+                >
+                  ↻ retry
+                </button>
+              )}
             </div>
           );
         })}
