@@ -24,6 +24,43 @@ function stageOf(p: Project): string {
   return 'DRAFT';
 }
 
+// Shown while /api/analyze runs — a timed readout of the steps actually
+// happening server-side (scrape → extract → analyse), not a spinner.
+function CastingConsole({ url, intent }: { url: string; intent: string }) {
+  const STEPS = url
+    ? ['Reading the site', 'Extracting signals', 'Arguing the strategy', 'Writing the analysis']
+    : ['Reading the brief', 'Framing the market', 'Arguing the strategy', 'Writing the analysis'];
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const iv = setInterval(() => setI((p) => Math.min(p + 1, STEPS.length - 1)), 2600);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <div className="panel p-5 mt-8 recast-in">
+      <div className="mono-label !text-molten">recasting {url || 'from idea'}…</div>
+      <div className="mt-4 space-y-2.5">
+        {STEPS.map((s, idx) => (
+          <div key={s} className="flex items-center gap-3 font-mono text-[12px]">
+            <span style={{ color: idx <= i ? 'var(--molten)' : 'var(--steel)' }}>
+              {idx < i ? '●' : idx === i ? '▸' : '○'}
+            </span>
+            <span className={idx <= i ? 'text-bone' : 'text-steel/50'}>{s.toLowerCase()}</span>
+            {idx === i && <span className="caret h-3" />}
+          </div>
+        ))}
+      </div>
+      <div className="mt-5 h-[2px] bg-line overflow-hidden">
+        <div
+          className="h-full bg-molten"
+          style={{ width: `${((i + 1) / STEPS.length) * 100}%`, transition: 'width .6s ease-out' }}
+        />
+      </div>
+      <p className="mono-label !text-[9px] mt-3">this can take 10–20 seconds · you&apos;ll drop into the studio when it&apos;s done</p>
+    </div>
+  );
+}
+
 function ago(iso: string): string {
   const d = Date.now() - new Date(iso).getTime();
   const m = Math.floor(d / 60000);
@@ -134,6 +171,9 @@ export default function DashboardPage() {
             ))}
           </div>
 
+          {submitting ? (
+            <CastingConsole url={websiteUrl.trim()} intent={description.trim()} />
+          ) : (
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             <div className="grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.4fr)] gap-x-4 gap-y-5 items-end">
               <label className="block">
@@ -176,22 +216,14 @@ export default function DashboardPage() {
 
             <button
               type="submit"
-              disabled={submitting || !description.trim()}
+              disabled={!description.trim()}
               className="group inline-flex items-center gap-3 bg-molten text-ink px-6 py-3 font-mono font-bold text-xs uppercase tracking-[0.14em] disabled:opacity-40 transition-opacity"
             >
-              {submitting ? (
-                <>
-                  <span className="w-3 h-3 border-2 border-ink/30 border-t-ink rounded-full animate-spin" />
-                  Recasting…
-                </>
-              ) : (
-                <>
-                  Recast
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" strokeWidth={2.75} />
-                </>
-              )}
+              Recast
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" strokeWidth={2.75} />
             </button>
           </form>
+          )}
         </section>
 
         {/* ── 02 — recent casts ───────────────────────────────────── */}

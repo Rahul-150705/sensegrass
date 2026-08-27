@@ -8,6 +8,7 @@ import FileDirectoryView from '@/components/FileDirectoryView';
 import BlueprintView from '@/components/BlueprintView';
 import StageChat from '@/components/StageChat';
 import SourceCastDiff from '@/components/SourceCastDiff';
+import { LimelightNav } from '@/components/ui/limelight-nav';
 import BuildProgress, { BuildCategoryStatus } from '@/components/BuildProgress';
 import PipelineStepper from '@/components/PipelineStepper';
 import TerminalWidget from '@/components/TerminalWidget';
@@ -316,23 +317,25 @@ export default function ProjectStudioPage() {
 
   const hasGeneratedCode = Boolean(project.generatedFiles && project.generatedFiles.length > 0);
 
-  const STAGES: { id: typeof activeTab; n: string; label: string; enabled: boolean }[] = [
-    { id: 'pipeline', n: '01', label: 'Pipeline', enabled: true },
-    { id: 'analysis', n: '02', label: 'Strategy', enabled: !!project.analysis },
-    { id: 'fileDirectory', n: '03', label: 'Blueprint', enabled: !!project.analysis },
-    { id: 'vscode', n: '04', label: 'Code', enabled: hasGeneratedCode },
-    { id: 'terminal', n: '05', label: 'Export', enabled: hasGeneratedCode },
+  const STAGES: { id: typeof activeTab; n: string; label: string; icon: React.ReactElement; enabled: boolean }[] = [
+    { id: 'pipeline', n: '01', label: 'Pipeline', icon: <Sparkles />, enabled: true },
+    { id: 'analysis', n: '02', label: 'Strategy', icon: <Layers />, enabled: !!project.analysis },
+    { id: 'fileDirectory', n: '03', label: 'Blueprint', icon: <FolderTree />, enabled: !!project.analysis },
+    { id: 'vscode', n: '04', label: 'Code', icon: <Code />, enabled: hasGeneratedCode },
+    { id: 'terminal', n: '05', label: 'Export', icon: <Terminal />, enabled: hasGeneratedCode },
   ];
   const currentStage = STAGES.find((s) => s.id === activeTab) ?? STAGES[0];
+  const currentIdx = STAGES.findIndex((s) => s.id === activeTab);
 
   return (
     <div className="min-h-screen flex flex-col bg-ink text-bone md:pl-24 pb-9">
       <AppRail />
 
-      {/* Workspace bar */}
+      {/* Workspace bar — title row, then the stage nav on its own row so it
+          never collides with AppRail's floating top-right controls */}
       <div className="rule-b border-line bg-ink-soft">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 pt-4 pb-3 space-y-3">
+          <div className="flex items-center gap-3 min-w-0 pr-28 sm:pr-40">
             <button
               onClick={() => router.push('/dashboard')}
               className="text-steel hover:text-molten transition-colors shrink-0"
@@ -351,29 +354,17 @@ export default function ProjectStudioPage() {
             </div>
           </div>
 
-          {/* Numbered stage nav */}
-          <div className="flex items-stretch">
-            {STAGES.map((s) => {
-              const active = activeTab === s.id;
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => s.enabled && setActiveTab(s.id)}
-                  disabled={!s.enabled}
-                  className={`relative px-3 py-2 flex items-center gap-1.5 transition-colors ${
-                    !s.enabled
-                      ? 'text-steel/40 cursor-not-allowed'
-                      : active
-                      ? 'text-bone'
-                      : 'text-steel hover:text-bone'
-                  }`}
-                >
-                  {active && <span className="absolute left-0 right-0 -bottom-3 h-[2px] bg-molten" />}
-                  <span className={`font-mono text-[9px] ${active ? 'text-molten' : ''}`}>{s.n}</span>
-                  <span className="font-mono text-[10px] uppercase tracking-wider">{s.label}</span>
-                </button>
-              );
-            })}
+          <div className="overflow-x-auto -mx-1 px-1">
+            <LimelightNav
+              activeIndex={currentIdx < 0 ? 0 : currentIdx}
+              items={STAGES.map((s) => ({
+                id: s.id,
+                icon: s.icon,
+                label: s.label,
+                disabled: !s.enabled,
+                onClick: () => s.enabled && setActiveTab(s.id),
+              }))}
+            />
           </div>
         </div>
       </div>
