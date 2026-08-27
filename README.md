@@ -240,8 +240,9 @@ Run [`supabase_schema.sql`](./supabase_schema.sql) to create both tables.
 ├── middleware.ts           # Edge route protection
 ├── types/index.ts          # TypeScript interfaces
 ├── supabase_schema.sql     # Database setup script
-├── AI_PROMPT_LOG.md        # AI prompts used in development
-└── DEBUGGING_LOG.md        # Bugs found and resolved
+├── AI_DEVELOPMENT_PROCESS.md # Blank folder → deployed: which AI agent did what
+├── AI_PROMPT_LOG.md          # 9 key prompts, the reasoning, and post-fixes
+└── DEBUGGING_LOG.md          # 5 AI-code failures: problem → prompt → debug → fix
 ```
 
 ---
