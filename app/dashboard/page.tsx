@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Header from '@/components/Header';
+import AppRail from '@/components/AppRail';
 import { Project } from '@/types';
 import { getCurrentUser, getAuthToken, UserSession } from '@/lib/auth';
 import {
@@ -157,10 +157,10 @@ export default function DashboardPage() {
   const recent = projects.slice(0, 6);
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-100">
-      <Header />
+    <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-100 md:pl-24">
+      <AppRail />
 
-      <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full space-y-12">
+      <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-28 md:py-12 w-full space-y-12">
         {/* ── Welcome ─────────────────────────────────────────────── */}
         <section className="space-y-1.5">
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">

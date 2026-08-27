@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
+import AppRail from '@/components/AppRail';
 import {
   Sparkles,
   Globe,
@@ -130,10 +130,10 @@ export default function NewProjectPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white relative">
-      <Header />
+    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white relative md:pl-24">
+      <AppRail />
 
-      <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 w-full flex flex-col justify-center space-y-10 relative z-10">
+      <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-28 md:py-14 w-full flex flex-col justify-center space-y-10 relative z-10">
         {/* Minimalist Developer SaaS Hero */}
         <div className="text-center space-y-4 max-w-3xl mx-auto">
           <div className="inline-flex items-center space-x-2 bg-slate-900 border border-white/10 px-3.5 py-1 rounded-full text-xs font-semibold text-indigo-300 shadow-sm">
