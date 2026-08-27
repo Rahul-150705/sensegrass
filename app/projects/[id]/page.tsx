@@ -4,11 +4,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AppRail from '@/components/AppRail';
 import AnalysisView from '@/components/AnalysisView';
-import StrategyChat from '@/components/StrategyChat';
 import FileDirectoryView from '@/components/FileDirectoryView';
-import FileDirectoryChat from '@/components/FileDirectoryChat';
 import BlueprintView from '@/components/BlueprintView';
-import BlueprintChat from '@/components/BlueprintChat';
+import StageChat from '@/components/StageChat';
 import BuildProgress, { BuildCategoryStatus } from '@/components/BuildProgress';
 import PipelineStepper from '@/components/PipelineStepper';
 import TerminalWidget from '@/components/TerminalWidget';
@@ -425,13 +423,11 @@ export default function ProjectStudioPage() {
               isBuilding={false}
             />
             <div className="h-[600px] lg:sticky lg:top-20">
-              <StrategyChat
+              <StageChat
+                stage="strategy"
                 projectId={project.id}
-                analysis={project.analysis}
                 initialMessages={project.strategyChatHistory || []}
-                onAnalysisUpdated={(updated) =>
-                  setProject((prev) => (prev ? { ...prev, analysis: updated } : null))
-                }
+                onApplied={(a) => setProject((prev) => (prev ? { ...prev, analysis: a } : null))}
                 onRefresh={refreshProjectSilently}
               />
             </div>
@@ -439,34 +435,20 @@ export default function ProjectStudioPage() {
         ) : activeTab === 'fileDirectory' && project.analysis ? (
           <div className="max-w-7xl mx-auto space-y-6">
             {!project.fileDirectory ? (
-              <div className="max-w-xl mx-auto text-center py-16 space-y-4 bg-ink-soft border border-line rounded-none ">
-                <div className="w-12 h-12 rounded-none bg-molten/10 border border-molten/30 flex items-center justify-center mx-auto text-molten">
-                  <FolderTree className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-bone">Plan the Product File Directory</h3>
-                  <p className="text-xs text-steel mt-1.5 max-w-sm mx-auto leading-relaxed">
-                    Groq will plan the exact file tree, routes, components, and data entities this product
-                    needs — no code is written yet.
-                  </p>
-                </div>
+              <div className="panel max-w-xl mx-auto p-8 recast-in">
+                <span className="section-num">03 — BLUEPRINT + FILE TREE</span>
+                <h3 className="font-display text-lg font-semibold text-bone mt-2">Draw the blueprint</h3>
+                <p className="text-[13px] text-steel mt-1.5 leading-relaxed max-w-sm">
+                  Recast plans the proposed product and the exact file tree — routes, components,
+                  data entities. No code is written yet.
+                </p>
                 <button
                   onClick={handleGenerateFileDirectory}
                   disabled={isGeneratingFileDirectory}
-                  className="bg-molten hover:opacity-90 text-ink font-bold text-xs px-6 py-3 rounded-none  inline-flex items-center space-x-2 transition-all active:scale-95 disabled:opacity-50"
+                  className="mt-5 inline-flex items-center gap-2 bg-molten text-ink px-5 py-2.5 font-mono font-bold text-[10px] uppercase tracking-[0.14em] disabled:opacity-40 transition-opacity"
                 >
-                  {isGeneratingFileDirectory ? (
-                    <>
-                      <div className="w-3.5 h-3.5 rounded-full border-2 border-ink/40 border-t-ink animate-spin"></div>
-                      <span>Planning File Directory...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FolderTree className="w-3.5 h-3.5" />
-                      <span>Generate File Directory</span>
-                      <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                    </>
-                  )}
+                  {isGeneratingFileDirectory ? 'Planning…' : 'Generate'}
+                  <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.75} />
                 </button>
               </div>
             ) : isBuildingProduct ? (
@@ -477,25 +459,18 @@ export default function ProjectStudioPage() {
                     UI direction in plain English before planning the file tree. */}
                 {project.blueprint && (
                   <div className="space-y-3">
-                    <div>
-                      <h3 className="text-sm font-bold text-bone flex items-center gap-2">
-                        <Layers className="w-4 h-4 text-molten" /> Proposed Product
-                      </h3>
-                      <p className="text-[11px] text-steel mt-0.5">
-                        Modify the concept through chat — &quot;make it premium&quot;, &quot;add a dashboard&quot;,
-                        &quot;remove the pricing page&quot;, &quot;make it enterprise-ready&quot;.
-                      </p>
+                    <div className="rule-b border-line pb-2">
+                      <span className="section-num">03 — BLUEPRINT</span>
+                      <p className="text-[11px] text-steel mt-1">Change the proposed product in plain English, then review the file tree below.</p>
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
                       <BlueprintView blueprint={project.blueprint} />
                       <div className="h-[600px] lg:sticky lg:top-20">
-                        <BlueprintChat
+                        <StageChat
+                          stage="blueprint"
                           projectId={project.id}
-                          blueprint={project.blueprint}
                           initialMessages={project.blueprintChatHistory || []}
-                          onBlueprintUpdated={(updated) =>
-                            setProject((prev) => (prev ? { ...prev, blueprint: updated } : null))
-                          }
+                          onApplied={(b) => setProject((prev) => (prev ? { ...prev, blueprint: b } : null))}
                           onRefresh={refreshProjectSilently}
                         />
                       </div>
@@ -504,13 +479,9 @@ export default function ProjectStudioPage() {
                 )}
 
                 <div className="space-y-3">
-                  <div>
-                    <h3 className="text-sm font-bold text-bone flex items-center gap-2">
-                      <FolderTree className="w-4 h-4 text-molten" /> Proposed File Structure
-                    </h3>
-                    <p className="text-[11px] text-steel mt-0.5">
-                      The exact file tree Build will generate code for. Refine it, then build.
-                    </p>
+                  <div className="rule-b border-line pb-2">
+                    <span className="section-num">04 — FILE TREE</span>
+                    <p className="text-[11px] text-steel mt-1">The exact files Build will generate. Refine, then write the code.</p>
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
                     <FileDirectoryView
@@ -519,13 +490,11 @@ export default function ProjectStudioPage() {
                       isBuilding={isBuildingProduct}
                     />
                     <div className="h-[600px] lg:sticky lg:top-20">
-                      <FileDirectoryChat
+                      <StageChat
+                        stage="fileDirectory"
                         projectId={project.id}
-                        fileDirectory={project.fileDirectory}
                         initialMessages={project.fileDirectoryChatHistory || []}
-                        onFileDirectoryUpdated={(updated) =>
-                          setProject((prev) => (prev ? { ...prev, fileDirectory: updated } : null))
-                        }
+                        onApplied={(fd) => setProject((prev) => (prev ? { ...prev, fileDirectory: fd } : null))}
                         onRefresh={refreshProjectSilently}
                       />
                     </div>
