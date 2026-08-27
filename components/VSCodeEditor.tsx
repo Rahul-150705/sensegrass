@@ -21,7 +21,9 @@ import {
   FileText,
   ChevronRight,
   Maximize2,
+  Minimize2,
   RefreshCw,
+  Database,
 } from 'lucide-react';
 
 interface VSCodeEditorProps {
@@ -31,6 +33,8 @@ interface VSCodeEditorProps {
   onSendMessage: (msg: string) => void;
   isSending?: boolean;
   onCodeChange?: (updatedFiles: ProjectFile[]) => void;
+  fullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 export default function VSCodeEditor({
@@ -40,6 +44,8 @@ export default function VSCodeEditor({
   onSendMessage,
   isSending,
   onCodeChange,
+  fullscreen,
+  onToggleFullscreen,
 }: VSCodeEditorProps) {
   const [selectedFilePath, setSelectedFilePath] = useState<string>(files[0]?.path || 'app/page.tsx');
   const [activeView, setActiveView] = useState<'editor' | 'preview' | 'split'>('split');
@@ -59,6 +65,7 @@ export default function VSCodeEditor({
   // Group files by type
   const frontendFiles = files.filter((f) => f.type === 'frontend');
   const backendFiles = files.filter((f) => f.type === 'backend');
+  const databaseFiles = files.filter((f) => f.type === 'database');
   const configFiles = files.filter((f) => f.type === 'config');
 
   const handleCopy = () => {
@@ -74,16 +81,27 @@ export default function VSCodeEditor({
     setChatInput('');
   };
 
-  // Main page preview HTML string
+  // Main page preview. This is only ever a rough *static* approximation — the
+  // generated file is TSX, not HTML, so imports/JSX expressions/hooks/state
+  // don't execute. It is rendered inside a fully sandboxed iframe (no scripts,
+  // opaque origin) so the generated markup can't touch this page, its cookies,
+  // or localStorage.
   const mainPageFile = files.find((f) => f.path === 'app/page.tsx') || activeFile;
-  const renderableHtml = mainPageFile.content
-    ? mainPageFile.content.replace(/className=/g, 'class=').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
-    : '';
+  const previewBody = (mainPageFile.content || '')
+    .replace(/^\s*['"]use client['"];?\s*$/m, '')
+    .replace(/^\s*import[^\n]*$/gm, '') // drop import lines
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '') // drop JSX comments
+    .replace(/className=/g, 'class=');
+  const previewDoc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{margin:0;padding:16px;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#fff;color:#0f172a;line-height:1.5}*{box-sizing:border-box}pre,code{white-space:pre-wrap;word-break:break-word}</style></head><body>${previewBody}</body></html>`;
 
   const lines = (activeFile.content || '').split('\n');
 
   return (
-    <div className="bg-slate-950 border border-white/[0.1] rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[700px] text-slate-200 font-sans">
+    <div
+      className={`bg-slate-950 border border-white/[0.1] shadow-2xl flex flex-col text-slate-200 font-sans ${
+        fullscreen ? 'h-full rounded-none' : 'h-[700px] rounded-2xl overflow-hidden'
+      }`}
+    >
       {/* VS Code Title Bar */}
       <div className="bg-slate-900/90 border-b border-white/[0.08] px-4 py-2 flex items-center justify-between text-xs">
         {/* macOS Traffic Lights & Title */}
@@ -130,6 +148,16 @@ export default function VSCodeEditor({
               <span>Live Preview</span>
             </button>
           </div>
+
+          {onToggleFullscreen && (
+            <button
+              onClick={onToggleFullscreen}
+              title={fullscreen ? 'Exit full screen' : 'View full screen'}
+              className="bg-slate-950 border border-white/[0.08] p-1.5 rounded-lg text-slate-400 hover:text-white hover:border-indigo-500/40 transition-colors"
+            >
+              {fullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            </button>
+          )}
         </div>
       </div>
 
@@ -219,6 +247,32 @@ export default function VSCodeEditor({
                   </div>
                 )}
 
+                {/* Database Folder */}
+                {databaseFiles.length > 0 && (
+                  <div className="space-y-1 pt-1 border-t border-white/[0.06]">
+                    <div className="flex items-center space-x-1.5 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                      <Database className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Database & Schema</span>
+                    </div>
+                    <div className="pl-2 space-y-0.5">
+                      {databaseFiles.map((f) => (
+                        <button
+                          key={f.path}
+                          onClick={() => setSelectedFilePath(f.path)}
+                          className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center space-x-2 transition-colors ${
+                            selectedFilePath === f.path
+                              ? 'bg-indigo-600/30 text-white font-semibold border border-indigo-500/40'
+                              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+                          }`}
+                        >
+                          <FileCode className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span className="truncate">{f.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Config Folder */}
                 {configFiles.length > 0 && (
                   <div className="space-y-1 pt-1 border-t border-white/[0.06]">
@@ -266,7 +320,7 @@ export default function VSCodeEditor({
                         }`}
                       >
                         <span className="text-[10px] font-mono text-indigo-300 font-bold block">
-                          {m.role === 'user' ? 'You' : 'Claude Code Assistant'}
+                          {m.role === 'user' ? 'You' : 'Groq Code Assistant'}
                         </span>
                         <p className="leading-relaxed">{m.content}</p>
                       </div>
@@ -274,7 +328,7 @@ export default function VSCodeEditor({
                   )}
                   {isSending && (
                     <div className="p-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs text-indigo-400 font-mono animate-pulse">
-                      Updating codebase with Claude Agent...
+                      Updating codebase with Groq Agent...
                     </div>
                   )}
                 </div>
@@ -356,11 +410,16 @@ export default function VSCodeEditor({
                 </span>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 flex items-start justify-center bg-slate-950/80">
-                <div className="w-full bg-white rounded-xl overflow-hidden border border-white/10 shadow-2xl min-h-[400px]">
-                  <div
-                    dangerouslySetInnerHTML={{ __html: renderableHtml }}
-                    className="w-full"
+              <div className="flex-1 overflow-y-auto p-4 flex flex-col items-stretch gap-2 bg-slate-950/80">
+                <p className="text-[10px] font-mono text-amber-400/80 shrink-0">
+                  Static structural approximation — styling, state, and interactivity are not represented.
+                </p>
+                <div className="w-full flex-1 bg-white rounded-xl overflow-hidden border border-white/10 shadow-2xl min-h-[400px]">
+                  <iframe
+                    title="Live preview (sandboxed)"
+                    sandbox=""
+                    srcDoc={previewDoc}
+                    className="w-full h-full border-0"
                   />
                 </div>
               </div>

@@ -1,15 +1,32 @@
 import * as cheerio from 'cheerio';
-import { assertPublicHostname } from '@/lib/net-guard';
+import dns from 'node:dns';
+import { Agent } from 'undici';
+import { assertPublicHostname, isDisallowedIp } from '@/lib/net-guard';
+import type { ScrapedContent } from '@/types';
 
-export interface ScrapedContent {
-  url: string;
-  title: string;
-  description: string;
-  headings: string[];
-  mainText: string;
-  success: boolean;
-  error?: string;
-}
+export type { ScrapedContent };
+
+// Re-validates every resolved address at TCP-connect time. assertPublicHostname()
+// checks DNS up front, but between that check and fetch()'s own resolution a
+// hostname could be re-pointed at an internal address (DNS rebinding). This
+// dispatcher rejects the connection if the address it actually dials is private.
+const ssrfSafeAgent = new Agent({
+  connect: {
+    lookup: (hostname: string, options: any, callback: any) => {
+      dns.lookup(hostname, { ...options, all: true, verbatim: true }, (err, addresses) => {
+        if (err) return callback(err);
+        const list = addresses as unknown as Array<{ address: string; family: number }>;
+        for (const { address } of list) {
+          if (isDisallowedIp(address)) {
+            return callback(new Error(`Blocked connection to non-public address: ${address}`));
+          }
+        }
+        if (options?.all) return callback(null, list);
+        callback(null, list[0].address, list[0].family);
+      });
+    },
+  },
+});
 
 export async function fetchAndExtractWebsiteContent(urlInput: string): Promise<ScrapedContent> {
   let targetUrl = urlInput.trim();
@@ -39,7 +56,10 @@ export async function fetchAndExtractWebsiteContent(urlInput: string): Promise<S
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
       },
-    });
+      redirect: 'follow',
+      // undici-specific; valid at runtime on Node's global fetch.
+      dispatcher: ssrfSafeAgent,
+    } as any);
 
     clearTimeout(timeoutId);
 

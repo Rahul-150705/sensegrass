@@ -1,7 +1,7 @@
 // Server-only storage module — DO NOT import from client components
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { supabaseAdmin, isAdminConfigured } from '@/lib/supabase-admin';
-import { Project, ChatMessage } from '@/types';
+import { Project, ChatMessage, ChatStage } from '@/types';
 import fs from 'fs';
 import path from 'path';
 
@@ -58,19 +58,31 @@ export async function saveProject(project: Partial<Project> & { id: string }): P
 
   if (isDbConfigured && db) {
     try {
+      // saveProject is routinely called with a PARTIAL project (e.g. just
+      // { id, analysis } from the strategy refine endpoint). Fetch the
+      // existing row first so fields the caller didn't pass are preserved
+      // instead of being clobbered with empty-string/null defaults.
+      const { data: existingRow } = await db
+        .from('projects')
+        .select('*')
+        .eq('id', project.id)
+        .single();
+
       const { data, error } = await db
         .from('projects')
         .upsert({
           id: project.id,
-          user_id: project.userId || null,
-          name: project.name || 'Untitled SaaS Project',
-          website_url: project.websiteUrl || '',
-          description: project.description || '',
-          target_customer: project.targetCustomer || '',
-          analysis: project.analysis || null,
-          blueprint: project.blueprint || null,
-          ui_code: project.uiCode || null,
-          scraped_info: project.scrapedInfo || null,
+          user_id: project.userId ?? existingRow?.user_id ?? null,
+          name: project.name ?? existingRow?.name ?? 'Untitled SaaS Project',
+          website_url: project.websiteUrl ?? existingRow?.website_url ?? '',
+          description: project.description ?? existingRow?.description ?? '',
+          target_customer: project.targetCustomer ?? existingRow?.target_customer ?? '',
+          analysis: project.analysis !== undefined ? project.analysis : existingRow?.analysis ?? null,
+          blueprint: project.blueprint !== undefined ? project.blueprint : existingRow?.blueprint ?? null,
+          ui_code: project.uiCode !== undefined ? project.uiCode : existingRow?.ui_code ?? null,
+          scraped_info: project.scrapedInfo !== undefined ? project.scrapedInfo : existingRow?.scraped_info ?? null,
+          generated_files: project.generatedFiles !== undefined ? project.generatedFiles : existingRow?.generated_files ?? null,
+          file_directory: project.fileDirectory !== undefined ? project.fileDirectory : existingRow?.file_directory ?? null,
           updated_at: now,
         })
         .select()
@@ -88,6 +100,8 @@ export async function saveProject(project: Partial<Project> & { id: string }): P
           blueprint: data.blueprint,
           uiCode: data.ui_code,
           scrapedInfo: data.scraped_info,
+          generatedFiles: data.generated_files,
+          fileDirectory: data.file_directory,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
         };
@@ -112,6 +126,8 @@ export async function saveProject(project: Partial<Project> & { id: string }): P
     blueprint: project.blueprint !== undefined ? project.blueprint : existing?.blueprint,
     uiCode: project.uiCode !== undefined ? project.uiCode : existing?.uiCode,
     scrapedInfo: project.scrapedInfo !== undefined ? project.scrapedInfo : existing?.scrapedInfo,
+    generatedFiles: project.generatedFiles !== undefined ? project.generatedFiles : existing?.generatedFiles,
+    fileDirectory: project.fileDirectory !== undefined ? project.fileDirectory : existing?.fileDirectory,
     chatHistory: existing?.chatHistory || [],
     createdAt: existing?.createdAt || now,
     updatedAt: now,
@@ -123,7 +139,10 @@ export async function saveProject(project: Partial<Project> & { id: string }): P
 }
 
 // ─── Get Project By ID ──────────────────────────────────────────────────────────
-export async function getProjectById(id: string): Promise<Project | null> {
+// When `userId` is supplied, a project owned by a different user is treated as
+// "not found" here — defence in depth so ownership isn't only enforced at the
+// route layer (and so the JSON-file fallback can't return another user's row).
+export async function getProjectById(id: string, userId?: string): Promise<Project | null> {
   if (isDbConfigured && db) {
     try {
       const { data, error } = await db
@@ -133,17 +152,22 @@ export async function getProjectById(id: string): Promise<Project | null> {
         .single();
 
       if (!error && data) {
+        if (userId && data.user_id && data.user_id !== userId) return null;
         const { data: chatData } = await db
           .from('chat_messages')
           .select('*')
           .eq('project_id', id)
           .order('created_at', { ascending: true });
 
-        const chatHistory: ChatMessage[] = (chatData || []).map((c: any) => ({
+        const allMessages: ChatMessage[] = (chatData || []).map((c: any) => ({
           id: c.id,
           projectId: c.project_id,
           role: c.role,
           content: c.content,
+          // Rows written before the `stage` column existed default to
+          // 'studio' at the DB level, which is correct — they were always
+          // Blueprint/Code copilot messages.
+          stage: (c.stage || 'studio') as ChatStage,
           createdAt: c.created_at,
         }));
 
@@ -158,7 +182,12 @@ export async function getProjectById(id: string): Promise<Project | null> {
           blueprint: data.blueprint,
           uiCode: data.ui_code,
           scrapedInfo: data.scraped_info,
-          chatHistory,
+          generatedFiles: data.generated_files,
+          fileDirectory: data.file_directory,
+          chatHistory: allMessages.filter((m) => m.stage === 'studio' || !m.stage),
+          strategyChatHistory: allMessages.filter((m) => m.stage === 'strategy'),
+          blueprintChatHistory: allMessages.filter((m) => m.stage === 'blueprint'),
+          fileDirectoryChatHistory: allMessages.filter((m) => m.stage === 'fileDirectory'),
           createdAt: data.created_at,
           updatedAt: data.updated_at,
         };
@@ -170,9 +199,14 @@ export async function getProjectById(id: string): Promise<Project | null> {
 
   const store = readProjectsFile();
   const project = store[id];
+  if (project && userId && project.userId && project.userId !== userId) return null;
   if (project) {
     const chats = readChatsFile();
-    project.chatHistory = chats[id] || project.chatHistory || [];
+    const allMessages = chats[id] || project.chatHistory || [];
+    project.chatHistory = allMessages.filter((m) => m.stage === 'studio' || !m.stage);
+    project.strategyChatHistory = allMessages.filter((m) => m.stage === 'strategy');
+    project.blueprintChatHistory = allMessages.filter((m) => m.stage === 'blueprint');
+    project.fileDirectoryChatHistory = allMessages.filter((m) => m.stage === 'fileDirectory');
   }
   return project || null;
 }
@@ -204,6 +238,8 @@ export async function getAllProjects(userId?: string): Promise<Project[]> {
           blueprint: d.blueprint,
           uiCode: d.ui_code,
           scrapedInfo: d.scraped_info,
+          generatedFiles: d.generated_files,
+          fileDirectory: d.file_directory,
           createdAt: d.created_at,
           updatedAt: d.updated_at,
         }));
@@ -214,25 +250,33 @@ export async function getAllProjects(userId?: string): Promise<Project[]> {
   }
 
   const store = readProjectsFile();
-  return Object.values(store).sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  );
+  return Object.values(store)
+    // Same per-user isolation the Supabase query above enforces — without this
+    // the JSON-file fallback would hand every caller every user's projects.
+    .filter((p) => !userId || p.userId === userId)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 }
 
 // ─── Add Chat Message ───────────────────────────────────────────────────────────
 export async function addChatMessage(
   projectId: string,
   role: 'user' | 'assistant',
-  content: string
+  content: string,
+  stage: ChatStage = 'studio',
+  userId?: string
 ): Promise<ChatMessage> {
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
 
   if (isDbConfigured && db) {
     try {
+      // `user_id` is what the chat_messages RLS policy checks (auth.uid() =
+      // user_id). The service-role client bypasses RLS, but persisting it keeps
+      // the row correct if RLS is ever enforced with the anon key, and links
+      // the message to its author rather than only to the project.
       const { data } = await db
         .from('chat_messages')
-        .insert({ id, project_id: projectId, role, content, created_at: now })
+        .insert({ id, project_id: projectId, user_id: userId ?? null, role, content, stage, created_at: now })
         .select()
         .single();
 
@@ -240,8 +284,10 @@ export async function addChatMessage(
         return {
           id: data.id,
           projectId: data.project_id,
+          userId: data.user_id ?? undefined,
           role: data.role,
           content: data.content,
+          stage: (data.stage || 'studio') as ChatStage,
           createdAt: data.created_at,
         };
       }
@@ -250,7 +296,7 @@ export async function addChatMessage(
     }
   }
 
-  const msg: ChatMessage = { id, projectId, role, content, createdAt: now };
+  const msg: ChatMessage = { id, projectId, userId, role, content, stage, createdAt: now };
   const chats = readChatsFile();
   if (!chats[projectId]) chats[projectId] = [];
   chats[projectId].push(msg);
@@ -258,9 +304,44 @@ export async function addChatMessage(
 
   const store = readProjectsFile();
   if (store[projectId]) {
-    store[projectId].chatHistory = chats[projectId];
+    store[projectId].chatHistory = chats[projectId].filter((m) => m.stage === 'studio' || !m.stage);
+    store[projectId].strategyChatHistory = chats[projectId].filter((m) => m.stage === 'strategy');
+    store[projectId].blueprintChatHistory = chats[projectId].filter((m) => m.stage === 'blueprint');
+    store[projectId].fileDirectoryChatHistory = chats[projectId].filter((m) => m.stage === 'fileDirectory');
     writeProjectsFile(store);
   }
 
   return msg;
+}
+
+// ─── Clear Chat Messages (per project, per stage) ────────────────────────────────
+export async function clearChatMessages(projectId: string, stage: ChatStage): Promise<void> {
+  if (isDbConfigured && db) {
+    try {
+      const { error } = await db
+        .from('chat_messages')
+        .delete()
+        .eq('project_id', projectId)
+        .eq('stage', stage);
+      if (!error) return;
+      console.warn('Supabase clearChatMessages fallback:', error.message);
+    } catch (err: any) {
+      console.warn('Supabase clearChatMessages error, using file fallback:', err?.message);
+    }
+  }
+
+  const chats = readChatsFile();
+  if (chats[projectId]) {
+    chats[projectId] = chats[projectId].filter((m) => m.stage !== stage);
+    writeChatsFile(chats);
+  }
+
+  const store = readProjectsFile();
+  if (store[projectId]) {
+    if (stage === 'strategy') store[projectId].strategyChatHistory = [];
+    else if (stage === 'blueprint') store[projectId].blueprintChatHistory = [];
+    else if (stage === 'fileDirectory') store[projectId].fileDirectoryChatHistory = [];
+    else store[projectId].chatHistory = [];
+    writeProjectsFile(store);
+  }
 }

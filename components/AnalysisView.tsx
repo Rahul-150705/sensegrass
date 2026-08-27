@@ -31,12 +31,12 @@ export default function AnalysisView({ analysis, scrapedInfo, onBuildProduct, is
           {isBuilding ? (
             <>
               <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin"></div>
-              <span>Planning Blueprint...</span>
+              <span>Loading...</span>
             </>
           ) : (
             <>
               <Rocket className="w-3.5 h-3.5" />
-              <span>Build Product Blueprint</span>
+              <span>Continue to File Directory</span>
               <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </>
           )}

@@ -3,15 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --background: #090d16;
-  --foreground: #f8fafc;
-  --muted: #94a3b8;
-  --border: #1e293b;
-  --border-hover: #334155;
-  --card-bg: rgba(15, 23, 42, 0.85);
-  --card-bg-elevated: rgba(30, 41, 59, 0.7);
-  --accent-indigo: #6366f1;
-  --accent-cyan: #38bdf8;
+  --background: #0a0a0a;
+  --foreground: #f5f4f0;
+  --muted: #a3a3a3;
+  --border: #262626;
+  --border-hover: #404040;
+  --card-bg: rgba(23, 23, 23, 0.85);
+  --card-bg-elevated: rgba(38, 38, 38, 0.7);
+  --accent-cyan: #22d3ee;
+  --accent-sky: #38bdf8;
   --accent-emerald: #34d399;
 }
 
@@ -25,12 +25,12 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* Subtle slate background grid texture */
+/* Subtle warm dot-grid texture */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: 
+  background-image:
     linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
   background-size: 32px 32px;
@@ -46,7 +46,7 @@ body::after {
   left: 20%;
   right: 20%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.35), rgba(56, 189, 248, 0.25), transparent);
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.35), rgba(56, 189, 248, 0.25), transparent);
   pointer-events: none;
   z-index: 50;
 }
@@ -58,38 +58,38 @@ body::after {
 }
 
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: #0a0a0a;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #262626;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #404040;
 }
 
 /* Redesigned Card Surfaces */
 .card-slate {
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(23, 23, 23, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 1rem;
+  border-radius: 0.75rem;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .card-slate-hover:hover {
-  border-color: rgba(99, 102, 241, 0.35);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px -3px rgba(99, 102, 241, 0.1);
+  border-color: rgba(34, 211, 238, 0.35);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px -3px rgba(34, 211, 238, 0.1);
   transform: translateY(-1px);
 }
 
 .card-slate-elevated {
-  background: rgba(15, 23, 42, 0.95);
+  background: rgba(23, 23, 23, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 1.25rem;
+  border-radius: 1rem;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
@@ -100,14 +100,24 @@ body::after {
   text-wrap: balance;
 }
 
+.font-display {
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+}
+
+/* Warm dot-grid texture utility for hero/login panels */
+.bg-dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
 /* Minimalist Focus Ring */
 input:focus, textarea:focus, select:focus {
   outline: none;
-  border-color: rgba(99, 102, 241, 0.6) !important;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15) !important;
+  border-color: rgba(34, 211, 238, 0.6) !important;
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.15) !important;
 }
 
 /* Code & Mono overrides */
 code, kbd, samp, pre {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }

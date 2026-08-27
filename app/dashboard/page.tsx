@@ -85,7 +85,7 @@ export default function DashboardPage() {
               </div>
             )}
             <Link
-              href="/"
+              href="/new"
               className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-md shadow-indigo-500/20 flex items-center space-x-2 transition-all active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -124,7 +124,7 @@ export default function DashboardPage() {
                 </p>
               </div>
               <Link
-                href="/"
+                href="/new"
                 className="inline-flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-5 py-2.5 rounded-xl shadow-md shadow-indigo-500/20 transition-all active:scale-95"
               >
                 <Sparkles className="w-3.5 h-3.5" />

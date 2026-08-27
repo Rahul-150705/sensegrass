@@ -10,17 +10,25 @@ export interface UserSession {
 const STORAGE_KEY = 'productforge_session';
 const COOKIE_NAME = 'session_token';
 
-// Set session cookie so middleware can read it for route protection
+// Set session cookie so middleware can read it for route protection.
+// This is set client-side (so it can't be HttpOnly); it is only a routing
+// hint — every API route still cryptographically verifies the bearer token.
+// `Secure` is added on HTTPS so the cookie never rides over plain HTTP.
+function cookieSuffix() {
+  const secure = typeof location !== 'undefined' && location.protocol === 'https:' ? '; Secure' : '';
+  return `; path=/; SameSite=Strict${secure}`;
+}
+
 function setSessionCookie(token: string) {
   if (typeof document === 'undefined') return;
   const maxAge = 60 * 60 * 24 * 7; // 7 days
-  document.cookie = `${COOKIE_NAME}=${token}; path=/; max-age=${maxAge}; SameSite=Strict`;
+  document.cookie = `${COOKIE_NAME}=${token}; max-age=${maxAge}${cookieSuffix()}`;
 }
 
 // Clear session cookie on logout
 function clearSessionCookie() {
   if (typeof document === 'undefined') return;
-  document.cookie = `${COOKIE_NAME}=; path=/; max-age=0; SameSite=Strict`;
+  document.cookie = `${COOKIE_NAME}=; max-age=0${cookieSuffix()}`;
 }
 
 export async function getCurrentUser(): Promise<UserSession | null> {

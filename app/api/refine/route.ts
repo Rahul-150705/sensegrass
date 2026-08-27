@@ -3,6 +3,7 @@ import { refineProduct } from '@/lib/ai';
 import { getDefaultStarterUICode } from '@/lib/openai';
 import { getProjectById, saveProject, addChatMessage } from '@/lib/store';
 import { getAuthenticatedUser } from '@/lib/auth-server';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +11,9 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 });
     }
+
+    const limited = enforceRateLimit(user.id, 'refine', 20, 60_000);
+    if (limited) return limited;
 
     const body = await request.json();
     const { projectId, message } = body;
@@ -21,7 +25,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const project = await getProjectById(projectId);
+    const project = await getProjectById(projectId, user.id);
     if (!project || project.userId !== user.id) {
       return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
     }
@@ -33,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     // Record user chat message
-    await addChatMessage(projectId, 'user', message);
+    await addChatMessage(projectId, 'user', message, 'studio', user.id);
 
     const chatHistory = (project.chatHistory || []).map((m) => ({
       role: m.role,
@@ -44,7 +48,7 @@ export async function POST(request: Request) {
       project.uiCode ||
       getDefaultStarterUICode(project.blueprint.productName, project.blueprint.tagline);
 
-    // Refine blueprint + code + files with Claude Agent
+    // Refine blueprint + code + files with the Groq code agent
     const { updatedBlueprint, updatedCode, updatedFiles, assistantMessage } = await refineProduct(
       project.blueprint,
       currentCode,
@@ -54,7 +58,7 @@ export async function POST(request: Request) {
     );
 
     // Save assistant response message
-    await addChatMessage(projectId, 'assistant', assistantMessage);
+    await addChatMessage(projectId, 'assistant', assistantMessage, 'studio', user.id);
 
     // Save updated project blueprint and code
     const updatedProject = await saveProject({

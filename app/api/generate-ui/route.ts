@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { generateStarterUI } from '@/lib/ai';
 import { getProjectById, saveProject } from '@/lib/store';
 import { getAuthenticatedUser } from '@/lib/auth-server';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +11,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 });
     }
 
+    const limited = enforceRateLimit(user.id, 'generate-ui', 10, 60_000);
+    if (limited) return limited;
+
     const body = await request.json();
     const { projectId } = body;
 
@@ -17,7 +21,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Project ID is required.' }, { status: 400 });
     }
 
-    const project = await getProjectById(projectId);
+    const project = await getProjectById(projectId, user.id);
     if (!project || project.userId !== user.id) {
       return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
     }
@@ -28,7 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate starter React UI code with Claude Agent
+    // Generate starter React UI code with the Groq code agent
     const uiCode = await generateStarterUI(project.blueprint);
 
     // Save in Supabase / Store

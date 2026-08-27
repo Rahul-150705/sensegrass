@@ -1,18 +1,19 @@
-import { ProductAnalysis, ProductBlueprint, ScrapedContent, ProjectFile } from '@/types';
+import { ProductAnalysis, ProductBlueprint, ScrapedContent, ProjectFile, ProductFileDirectory } from '@/types';
 import {
   isGroqConfigured,
   analyzeWebsiteWithGroq,
   generateBlueprintWithGroq,
-  getDefaultFullStackFiles,
+  refineAnalysisWithGroq,
+  StrategyRefineResult,
+  refineBlueprintWithGroq,
+  BlueprintRefineResult,
+  generateStarterUICodeWithGroq,
+  generateFullStackCodeWithGroq,
+  refineWithGroq,
+  generateFileDirectoryWithGroq,
+  refineFileDirectoryWithGroq,
+  FileDirectoryRefineResult,
 } from '@/lib/groq';
-import {
-  isClaudeConfigured,
-  analyzeWebsiteWithClaude,
-  generateBlueprintWithClaude,
-  generateStarterUICodeWithClaude,
-  generateFullStackCodeWithClaude,
-  refineWithClaude,
-} from '@/lib/claude';
 import {
   isOpenAIConfigured,
   analyzeWebsiteWithAI,
@@ -21,14 +22,14 @@ import {
   refineWithAI,
 } from '@/lib/openai';
 
-export const activeAIProvider = isGroqConfigured && isClaudeConfigured
-  ? 'Groq LLM Engine (Llama 3.3 70B) + Claude Code Agent'
-  : isGroqConfigured
-  ? 'Groq LLM Engine (Llama 3.3 70B)'
-  : isClaudeConfigured
-  ? 'Anthropic Claude Agent (Claude 3.5 Sonnet)'
+// Groq (GPT-OSS 120B) is the only AI provider used for every stage —
+// strategy analysis, blueprint planning, file directory planning, and
+// full-stack code generation. OpenAI remains only as a last-resort fallback
+// if GROQ_API_KEY is missing.
+export const activeAIProvider = isGroqConfigured
+  ? 'Groq LLM Engine (GPT-OSS 120B)'
   : isOpenAIConfigured
-  ? 'OpenAI API (GPT-4o)'
+  ? 'OpenAI API (GPT-4o) — fallback, GROQ_API_KEY not set'
   : 'Smart Agent Engine (Built-in Demo)';
 
 export async function analyzeWebsite(
@@ -41,38 +42,55 @@ export async function analyzeWebsite(
   if (isGroqConfigured) {
     return analyzeWebsiteWithGroq(websiteUrl, scraped, userDescription, targetCustomer);
   }
-  if (isClaudeConfigured) {
-    return analyzeWebsiteWithClaude(websiteUrl, scraped, userDescription, targetCustomer);
-  }
   return analyzeWebsiteWithAI(websiteUrl, scraped, userDescription, targetCustomer);
 }
 
+// Step 2: product metadata only (name, tagline, features, nav, pages, UI
+// direction) — no file tree, no code. See generateFileDirectory below for
+// the file tree, and buildFilesForCategory (called from /api/build) for code.
 export async function generateBlueprint(
   analysis: ProductAnalysis,
   userDescription: string,
   targetCustomer: string
 ): Promise<ProductBlueprint> {
-  // Step 2: Groq API generates blueprint & full-stack project file structure
-  let blueprint: ProductBlueprint;
   if (isGroqConfigured) {
-    blueprint = await generateBlueprintWithGroq(analysis, userDescription, targetCustomer);
-  } else if (isClaudeConfigured) {
-    blueprint = await generateBlueprintWithClaude(analysis, userDescription, targetCustomer);
-  } else {
-    blueprint = await generateBlueprintWithAI(analysis, userDescription, targetCustomer);
+    return generateBlueprintWithGroq(analysis, userDescription, targetCustomer);
   }
+  return generateBlueprintWithAI(analysis, userDescription, targetCustomer);
+}
 
-  // Ensure default full-stack file tree is populated if needed
-  if (!blueprint.generatedFiles || blueprint.generatedFiles.length === 0) {
-    blueprint.generatedFiles = getDefaultFullStackFiles(blueprint.productName);
-  }
+// Step 3: the concrete, reviewable build plan — the exact file tree Build
+// will later generate code for, plus routes/components/data entities/
+// integrations. Groq only, per the strategy analyst/architect role.
+export async function generateFileDirectory(
+  analysis: ProductAnalysis,
+  userDescription: string,
+  targetCustomer: string
+): Promise<ProductFileDirectory> {
+  return generateFileDirectoryWithGroq(analysis, userDescription, targetCustomer);
+}
 
-  // Step 3: Claude Code Agent writes implementation code for generated files
-  if (isClaudeConfigured && blueprint.generatedFiles) {
-    blueprint.generatedFiles = await generateFullStackCodeWithClaude(blueprint, blueprint.generatedFiles);
-  }
+// File Directory chat refine — distinct from refineStrategy (Stage A) and
+// refineProduct (Stage B code). Never touches the strategy or the code.
+export async function refineFileDirectory(
+  current: ProductFileDirectory,
+  userInstruction: string,
+  chatHistory: { role: string; content: string }[]
+): Promise<FileDirectoryRefineResult> {
+  return refineFileDirectoryWithGroq(current, userInstruction, chatHistory);
+}
 
-  return blueprint;
+// Step 4: writes real code for a set of files (typically one category —
+// frontend/backend/config/database — at a time, driven by the finalized
+// file directory) so the Build UI can show real, incremental progress.
+export async function buildFiles(
+  blueprint: ProductBlueprint,
+  filesToGenerate: ProjectFile[]
+): Promise<ProjectFile[]> {
+  // Groq is the only real code-gen path. generateFullStackCodeWithGroq throws
+  // (GroqGenerationError / GroqRateLimitError) on any failure — including a
+  // missing API key — so a failed build is never persisted as placeholder stubs.
+  return generateFullStackCodeWithGroq(blueprint, filesToGenerate);
 }
 
 export async function generateStarterUI(blueprint: ProductBlueprint): Promise<string> {
@@ -82,10 +100,32 @@ export async function generateStarterUI(blueprint: ProductBlueprint): Promise<st
     return mainPageFile.content;
   }
 
-  if (isClaudeConfigured) {
-    return generateStarterUICodeWithClaude(blueprint);
+  if (isGroqConfigured) {
+    return generateStarterUICodeWithGroq(blueprint);
   }
   return generateStarterUICodeWithAI(blueprint);
+}
+
+// Stage A (Strategy) refine — distinct from refineProduct below, which is
+// Stage B (Blueprint + Code). This never touches the blueprint or code.
+export async function refineStrategy(
+  currentAnalysis: ProductAnalysis,
+  userInstruction: string,
+  chatHistory: { role: string; content: string }[]
+): Promise<StrategyRefineResult> {
+  return refineAnalysisWithGroq(currentAnalysis, userInstruction, chatHistory);
+}
+
+// Conversational "modify the proposed product" step — edits the ProductBlueprint
+// metadata (name, tagline, features, navigation, pages, UI direction) from
+// natural-language instructions. Distinct from refineStrategy (analysis JSON),
+// refineFileDirectory (file tree), and refineProduct (blueprint + code).
+export async function refineBlueprint(
+  current: ProductBlueprint,
+  userInstruction: string,
+  chatHistory: { role: string; content: string }[]
+): Promise<BlueprintRefineResult> {
+  return refineBlueprintWithGroq(current, userInstruction, chatHistory);
 }
 
 export async function refineProduct(
@@ -95,8 +135,8 @@ export async function refineProduct(
   chatHistory: { role: string; content: string }[],
   currentFiles?: ProjectFile[]
 ) {
-  if (isClaudeConfigured) {
-    return refineWithClaude(currentBlueprint, currentCode, userInstruction, chatHistory, currentFiles);
+  if (isGroqConfigured) {
+    return refineWithGroq(currentBlueprint, currentCode, userInstruction, chatHistory, currentFiles);
   }
   return refineWithAI(currentBlueprint, currentCode, userInstruction, chatHistory);
 }

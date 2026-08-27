@@ -38,6 +38,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 });
     }
 
+    // Disk export writes to the server's filesystem, which is read-only /
+    // ephemeral on serverless hosts — anything written there is silently lost.
+    if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      return NextResponse.json(
+        { error: 'Disk export only works when ProductForge runs on your own machine. Run the app locally to use this.' },
+        { status: 501 }
+      );
+    }
+
     const body = await request.json();
     const { targetDir, files } = body;
 

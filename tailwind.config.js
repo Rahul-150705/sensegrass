@@ -13,6 +13,10 @@ module.exports = {
         foreground: "var(--foreground)",
         border: "var(--border)",
       },
+      fontFamily: {
+        display: ['var(--font-display)', 'ui-serif', 'Georgia', 'serif'],
+        mono: ['var(--font-mono)', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+      },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'glow-spin': 'spin 8s linear infinite',
@@ -28,4 +32,3 @@ module.exports = {
   },
   plugins: [],
 };
-

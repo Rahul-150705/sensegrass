@@ -15,7 +15,7 @@ export async function GET(
       );
     }
 
-    const project = await getProjectById(params.id);
+    const project = await getProjectById(params.id, user.id);
     if (!project || project.userId !== user.id) {
       // Return the same 404 for "not found" and "not yours" so project IDs
       // can't be enumerated or their existence confirmed by other users.

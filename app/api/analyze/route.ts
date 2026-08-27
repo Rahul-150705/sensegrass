@@ -3,6 +3,7 @@ import { fetchAndExtractWebsiteContent } from '@/lib/scraper';
 import { analyzeWebsite } from '@/lib/ai';
 import { saveProject } from '@/lib/store';
 import { getAuthenticatedUser } from '@/lib/auth-server';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +14,9 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
+
+    const limited = enforceRateLimit(user.id, 'analyze', 10, 60_000);
+    if (limited) return limited;
 
     const body = await request.json();
     const { websiteUrl, description, targetCustomer } = body;

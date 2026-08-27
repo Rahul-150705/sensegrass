@@ -5,7 +5,10 @@ import { Layers, CheckSquare, Compass, Paintbrush, Play, Sparkles, Target, Zap, 
 
 interface BlueprintViewProps {
   blueprint: ProductBlueprint;
-  onGenerateUI: () => void;
+  // Optional legacy action. When omitted, the view is display-only (the
+  // Product Blueprint step, where edits happen through BlueprintChat and the
+  // build is kicked off from the File Directory panel below).
+  onGenerateUI?: () => void;
   isGeneratingUI?: boolean;
 }
 
@@ -16,7 +19,7 @@ export default function BlueprintView({ blueprint, onGenerateUI, isGeneratingUI 
       <div className="flex flex-col gap-2.5 border-b border-white/[0.08] pb-4">
         <div>
           <span className="bg-slate-950 text-indigo-400 border border-indigo-500/30 text-[10px] px-2.5 py-0.5 rounded-md font-mono font-bold tracking-wider uppercase">
-            Phase 2 — Blueprint
+            Proposed Product — Blueprint
           </span>
           <h2 className="text-lg font-extrabold text-white mt-2 tracking-tight leading-tight">
             {blueprint.productName}
@@ -24,23 +27,25 @@ export default function BlueprintView({ blueprint, onGenerateUI, isGeneratingUI 
           <p className="text-xs text-indigo-300 font-semibold italic mt-0.5">&quot;{blueprint.tagline}&quot;</p>
         </div>
 
-        <button
-          onClick={onGenerateUI}
-          disabled={isGeneratingUI}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3 rounded-xl shadow-md shadow-indigo-500/20 flex items-center justify-center space-x-2 transition-all active:scale-[0.99] disabled:opacity-50"
-        >
-          {isGeneratingUI ? (
-            <>
-              <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin"></div>
-              <span>Synthesizing UI Code...</span>
-            </>
-          ) : (
-            <>
-              <Code2 className="w-3.5 h-3.5" />
-              <span>Generate Live Product UI</span>
-            </>
-          )}
-        </button>
+        {onGenerateUI && (
+          <button
+            onClick={onGenerateUI}
+            disabled={isGeneratingUI}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3 rounded-xl shadow-md shadow-indigo-500/20 flex items-center justify-center space-x-2 transition-all active:scale-[0.99] disabled:opacity-50"
+          >
+            {isGeneratingUI ? (
+              <>
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin"></div>
+                <span>Synthesizing UI Code...</span>
+              </>
+            ) : (
+              <>
+                <Code2 className="w-3.5 h-3.5" />
+                <span>Generate Live Product UI</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Description */}
@@ -91,11 +96,31 @@ export default function BlueprintView({ blueprint, onGenerateUI, isGeneratingUI 
         </div>
       </div>
 
+      {/* Navigation */}
+      {blueprint.navigation?.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2 text-slate-200 text-xs font-bold uppercase tracking-wider font-mono">
+            <Compass className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Navigation</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {blueprint.navigation.map((item, idx) => (
+              <span
+                key={idx}
+                className="text-[10px] bg-slate-950/70 text-slate-200 border border-white/[0.08] px-2.5 py-1 rounded-md font-mono"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Pages & Routes Map */}
       <div className="space-y-2">
         <div className="flex items-center space-x-2 text-slate-200 text-xs font-bold uppercase tracking-wider font-mono">
           <Compass className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Routes</span>
+          <span>Pages</span>
         </div>
         <div className="grid grid-cols-1 gap-1 text-xs">
           {blueprint.pages.map((pg, idx) => (

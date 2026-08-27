@@ -281,53 +281,17 @@ Respond ONLY with valid JSON:
           assistantMessage: result.assistantMessage,
         };
       }
+      throw new Error('OpenAI copilot returned an incomplete response.');
     } catch (err) {
       console.error('OpenAI Refine error:', err);
+      throw err instanceof Error ? err : new Error('The AI copilot request failed.');
     }
   }
 
-  // Fallback intelligent refinement handler
-  const lowerMsg = userInstruction.toLowerCase();
-  const updatedBp = JSON.parse(JSON.stringify(currentBlueprint)) as ProductBlueprint;
-  let summary = `Updated ${updatedBp.productName} blueprint and live UI preview based on your instructions.`;
-
-  if (lowerMsg.includes('enterprise') || lowerMsg.includes('premium') || lowerMsg.includes('sso') || lowerMsg.includes('rbac')) {
-    updatedBp.targetCustomer = 'Enterprise Organizations & Small Businesses';
-    if (!updatedBp.features.some((f) => f.name.includes('SSO'))) {
-      updatedBp.features.push(
-        { name: 'Enterprise Single Sign-On (SSO)', description: 'SAML 2.0 & Okta authentication integration.', priority: 'high' },
-        { name: 'Role-Based Access Control (RBAC)', description: 'Granular permission policies for enterprise teams.', priority: 'high' },
-        { name: 'Audit Logs & Compliance', description: 'Comprehensive security audit logging and SOC2 readiness.', priority: 'medium' }
-      );
-    }
-    updatedBp.uiDirection.style = 'Premium Enterprise SaaS, Dark Theme Slate & Gold Accents';
-    summary = `Updated project positioning for Enterprise. Added SSO, RBAC, Audit Logs, and updated the live preview to a premium dark theme styling!`;
-  } else if (lowerMsg.includes('dark') || lowerMsg.includes('theme')) {
-    updatedBp.uiDirection.style = 'Ultra-modern Dark Mode SaaS';
-    summary = `Switched UI Direction to Dark Mode with high-contrast metric visuals.`;
-  } else if (lowerMsg.includes('chart') || lowerMsg.includes('analytics') || lowerMsg.includes('revenue')) {
-    if (!updatedBp.features.some((f) => f.name.includes('Revenue'))) {
-      updatedBp.features.unshift({
-        name: 'Revenue Telemetry & Trend Charts',
-        description: 'Real-time MRR, ARR, and cash flow forecasting visualizers.',
-        priority: 'high',
-      });
-    }
-    summary = `Added interactive Revenue Telemetry chart and updated the live preview dashboard.`;
-  } else {
-    updatedBp.features.push({
-      name: userInstruction.slice(0, 30),
-      description: `Custom capability: ${userInstruction}`,
-      priority: 'high',
-    });
-  }
-
-  return {
-    updatedBlueprint: updatedBp,
-    updatedCode: getDefaultStarterUICode(updatedBp.productName, updatedBp.tagline, lowerMsg.includes('enterprise') || lowerMsg.includes('premium')),
-    updatedFiles: currentFiles,
-    assistantMessage: summary,
-  };
+  // No AI provider configured for the copilot. Fail loudly instead of the old
+  // deterministic fallback, which regenerated placeholder starter code and let
+  // /api/refine persist it over the user's real UI code.
+  throw new Error('No AI provider is configured, so the AI copilot is unavailable.');
 }
 
 export function getDefaultStarterUICode(productName: string, tagline: string, isPremium: boolean = false): string {

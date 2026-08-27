@@ -16,6 +16,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 });
     }
 
+    // This only makes sense against a dev server on the same machine. On
+    // serverless, "localhost" is the function itself — the check is meaningless.
+    if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      return NextResponse.json(
+        { error: 'The local health check / self-healing verifier only works when running ProductForge on your own machine.' },
+        { status: 501 }
+      );
+    }
+
     const body = await request.json();
     const { projectId, url } = body;
 
@@ -38,7 +47,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Project ID is required.' }, { status: 400 });
     }
 
-    const project = await getProjectById(projectId);
+    const project = await getProjectById(projectId, user.id);
     if (!project || project.userId !== user.id) {
       return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
     }

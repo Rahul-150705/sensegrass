@@ -33,13 +33,15 @@ CREATE TABLE IF NOT EXISTS public.projects (
   scraped_info JSONB,       -- Raw scraped website content (title, headings, text)
   blueprint JSONB,          -- Full product specification blueprint
   ui_code TEXT,             -- Legacy single-file UI code
-  generated_files JSONB,    -- Multi-file full-stack code array from Claude Code Agent
+  generated_files JSONB,    -- Multi-file full-stack code array from the Groq code agent
+  file_directory JSONB,     -- The finalized, reviewable build plan (file tree, routes, components, data entities) generated after Strategy, before Build
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()) NOT NULL
 );
 
--- Add generated_files column safely if it doesn't exist
+-- Add generated_files / file_directory columns safely if they don't exist
 ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS generated_files JSONB;
+ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS file_directory JSONB;
 
 -- ─────────────────────────────────────────────────────────────
 -- TABLE: chat_messages
@@ -51,11 +53,22 @@ CREATE TABLE IF NOT EXISTS public.chat_messages (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
   content TEXT NOT NULL,
+  stage TEXT NOT NULL DEFAULT 'studio' CHECK (stage IN ('studio', 'strategy', 'blueprint', 'fileDirectory')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()) NOT NULL
 );
 
 -- Add user_id column safely if it doesn't exist
 ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+
+-- Add stage column safely if it doesn't exist (separates the Strategy
+-- Assistant chat, the File Directory Assistant chat, and the Blueprint/Code
+-- Copilot chat within the same table). Drop + recreate the check constraint
+-- every run so re-running this script after adding a new stage value
+-- (e.g. 'fileDirectory') actually updates it, rather than a stale
+-- "does it exist" guard leaving an outdated constraint in place.
+ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS stage TEXT NOT NULL DEFAULT 'studio';
+ALTER TABLE public.chat_messages DROP CONSTRAINT IF EXISTS chat_messages_stage_check;
+ALTER TABLE public.chat_messages ADD CONSTRAINT chat_messages_stage_check CHECK (stage IN ('studio', 'strategy', 'blueprint', 'fileDirectory'));
 
 -- ─────────────────────────────────────────────────────────────
 -- INDEXES (for performance)

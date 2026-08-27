@@ -120,7 +120,9 @@ export default function TerminalWidget({
       const data = await res.json();
       setVerifyResult(data);
 
-      if (data.healthy) {
+      if (!res.ok || data.error) {
+        setLogs((prev) => [...prev, `[VERIFICATION ERROR]: ${data.error || `HTTP ${res.status}`}`]);
+      } else if (data.healthy) {
         setLogs((prev) => [
           ...prev,
           `✓ HTTP 200 OK: Application is running cleanly on ${data.url}`,
