@@ -32,7 +32,20 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      // Supabase "Leaked Password Protection" (HaveIBeenPwned) and the weak-password
+      // rule both come back as a terse string — rewrite them into something a user
+      // can act on.
+      const raw = (error.message || '').toLowerCase();
+      let message = error.message;
+      if ((error as { code?: string }).code === 'weak_password' || raw.includes('weak') || raw.includes('pwned') || raw.includes('breach') || raw.includes('leak')) {
+        message =
+          'That password has appeared in a known data breach, so it can’t be used. Pick a different password you haven’t used elsewhere (12+ characters).';
+      } else if (raw.includes('at least') && raw.includes('character')) {
+        message = 'Password is too short — use at least 8 characters.';
+      } else if (raw.includes('already registered') || raw.includes('already been registered')) {
+        message = 'An account with this email already exists. Try signing in instead.';
+      }
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
     if (!data.user) {
