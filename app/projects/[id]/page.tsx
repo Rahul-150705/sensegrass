@@ -189,21 +189,26 @@ export default function ProjectStudioPage() {
     );
 
     if (remaining.length === 0) {
-      setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'done', done } : c)));
+      setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'done', done, currentFile: undefined, failedFile: undefined } : c)));
       return true;
     }
 
     for (const f of remaining) {
+      setBuildCategories((prev) =>
+        prev.map((c) => (c.type === type ? { ...c, status: 'loading', currentFile: f.path, failedFile: undefined } : c))
+      );
       const ok = await buildOneFile(type, f.path);
       if (!ok) {
-        setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'error', done } : c)));
+        setBuildCategories((prev) =>
+          prev.map((c) => (c.type === type ? { ...c, status: 'error', done, currentFile: undefined, failedFile: f.path } : c))
+        );
         return false;
       }
       done += 1;
-      setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'loading', done } : c)));
+      setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'loading', done, currentFile: undefined } : c)));
     }
 
-    setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'done', done } : c)));
+    setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'done', done, currentFile: undefined, failedFile: undefined } : c)));
     return true;
   };
 
@@ -545,6 +550,7 @@ export default function ProjectStudioPage() {
                 categories={buildCategories}
                 building={isBuildingProduct}
                 retrying={isRetryingBuild}
+                estimatedSeconds={(project.fileDirectory?.files.length ?? 0) * 6}
                 onRetry={handleRetryFailed}
                 onRetryCategory={handleRetryCategory}
                 onContinue={enterStudio}
