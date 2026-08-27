@@ -211,7 +211,10 @@ export default function DashboardPage() {
             </label>
 
             {formError && (
-              <p className="mono-label !text-molten !tracking-normal !text-[11px]">! {formError}</p>
+              <div className="border-l-2 border-molten pl-3 py-1.5 recast-in">
+                <div className="mono-label !text-molten">could not recast</div>
+                <p className="text-[12px] text-bone/90 mt-0.5 leading-snug">{formError}</p>
+              </div>
             )}
 
             <button

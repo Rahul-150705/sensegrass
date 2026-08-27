@@ -17,6 +17,8 @@ function scrapeErrorMessage(reason?: string): string {
   const status = r.match(/status\s*(\d{3})/)?.[1];
   if (status) return `The website returned an error (HTTP ${status}).`;
   if (r.includes('http/https')) return 'Only http:// and https:// URLs are supported.';
+  if (r.includes('no readable content') || r.includes('not an html page'))
+    return 'We reached that URL but couldn’t read any content from it. Make sure it’s a public web page.';
   return 'Could not reach that website. Check the URL, or leave it blank to build from an idea.';
 }
 

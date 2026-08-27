@@ -67,6 +67,11 @@ export async function fetchAndExtractWebsiteContent(urlInput: string): Promise<S
       return getFallbackContent(targetUrl, `HTTP status ${response.status}`);
     }
 
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType && !/text\/html|application\/xhtml|text\/plain/i.test(contentType)) {
+      return getFallbackContent(targetUrl, `not an HTML page (${contentType.split(';')[0]})`);
+    }
+
     const html = await response.text();
     const $ = cheerio.load(html);
 
@@ -96,12 +101,22 @@ export async function fetchAndExtractWebsiteContent(urlInput: string): Promise<S
 
     const mainText = cleanLines.slice(0, 40).join('\n'); // take first 40 substantial paragraphs
 
+    // Reject pages we technically reached but that carry no usable product
+    // content — parked domains, "coming soon" holders, generic error pages,
+    // JS-only SPAs that render nothing server-side. Better to tell the user
+    // than to build an analysis out of nothing.
+    const textLen = mainText.replace(/\s+/g, ' ').trim().length;
+    const hasContent = title.trim().length > 2 || headings.length > 0 || textLen > 120;
+    if (!hasContent) {
+      return getFallbackContent(targetUrl, 'no readable content on the page');
+    }
+
     return {
       url: targetUrl,
       title: title || targetUrl,
-      description: description || 'Website content extracted successfully.',
+      description: description || '',
       headings: headings.slice(0, 15),
-      mainText: mainText || 'Content summary extracted from webpage.',
+      mainText,
       success: true,
     };
   } catch (err: any) {
