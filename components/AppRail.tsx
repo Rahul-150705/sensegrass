@@ -35,14 +35,14 @@ export default function AppRail() {
 
   return (
     <>
-      {/* Floating brand — top left */}
+      {/* Floating brand — top left (no box, just the mark + wordmark) */}
       <Link
         href="/dashboard"
-        className={`fixed top-4 left-4 z-50 flex items-center gap-2 border border-white/12 bg-ink-2 px-2.5 py-1.5 shadow-[0_8px_28px_-6px_rgba(0,0,0,0.7)] transition-all duration-500 hover:border-molten/40 ${
+        className={`fixed top-4 left-4 z-50 flex items-center gap-2 transition-all duration-500 hover:opacity-70 ${
           mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
         }`}
       >
-        <RecastMark className="h-6 w-6" />
+        <RecastMark className="h-7 w-7" />
         <span className="font-mono font-bold text-[11px] tracking-[0.22em] uppercase text-bone">Recast</span>
       </Link>
 
@@ -67,7 +67,7 @@ export default function AppRail() {
       {/* Icon rail — left on desktop, bottom bar on mobile */}
       <nav
         aria-label="Primary"
-        className={`fixed z-40 flex items-center gap-1 border border-white/12 bg-ink-2 p-1.5 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.75)] transition-all duration-500
+        className={`fixed z-40 flex items-center gap-1 rounded-full border border-white/12 bg-ink-2 p-1.5 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.75)] transition-all duration-500
           left-1/2 bottom-4 -translate-x-1/2 flex-row
           md:left-4 md:top-1/2 md:bottom-auto md:translate-x-0 md:-translate-y-1/2 md:flex-col
           ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
@@ -79,18 +79,16 @@ export default function AppRail() {
               key={label}
               href={href}
               aria-label={label}
-              className={`group relative grid h-10 w-10 place-items-center transition-colors ${
-                active ? 'text-bone bg-white/[0.06]' : 'text-bone/55 hover:text-bone hover:bg-white/[0.05]'
+              className={`group relative grid h-10 w-10 place-items-center rounded-full transition-colors ${
+                active
+                  ? 'text-molten bg-molten/10 ring-1 ring-inset ring-molten/50'
+                  : 'text-bone/55 hover:text-bone hover:bg-white/[0.05]'
               }`}
             >
-              {/* active molten bar */}
-              {active && (
-                <span className="absolute md:left-0 md:top-1.5 md:bottom-1.5 md:w-[2px] max-md:bottom-0 max-md:left-1.5 max-md:right-1.5 max-md:h-[2px] bg-molten" />
-              )}
               <Icon className="w-[18px] h-[18px]" strokeWidth={active ? 2.5 : 2} />
 
               {/* Hover-expand label (desktop rail only) */}
-              <span className="pointer-events-none absolute left-full ml-3 hidden md:block whitespace-nowrap border border-white/12 bg-ink-2 px-2.5 py-1 mono-label !text-[9px] !text-bone opacity-0 -translate-x-1 transition-all duration-150 group-hover:opacity-100 group-hover:translate-x-0">
+              <span className="pointer-events-none absolute left-full ml-3 hidden md:block whitespace-nowrap rounded-full border border-white/12 bg-ink-2 px-2.5 py-1 mono-label !text-[9px] !text-bone opacity-0 -translate-x-1 transition-all duration-150 group-hover:opacity-100 group-hover:translate-x-0">
                 {label}
               </span>
             </Link>
