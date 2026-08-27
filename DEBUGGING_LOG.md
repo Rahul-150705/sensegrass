@@ -1,6 +1,6 @@
-# Debugging Log — ProductForge
+# Debugging Log — Recast
 
-This document records key bugs encountered during development of ProductForge and the debugging steps taken to resolve them.
+This document records key bugs encountered during development of Recast and the debugging steps taken to resolve them.
 Required deliverable per project rubric.
 
 ---

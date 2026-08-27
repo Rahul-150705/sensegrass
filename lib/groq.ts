@@ -556,7 +556,7 @@ export async function refineAnalysisWithGroq(
   }
 
   try {
-    const systemPrompt = `You are the Groq Product Analyst Agent for ProductForge. You ONLY read and modify the
+    const systemPrompt = `You are the Groq Product Analyst Agent for Recast. You ONLY read and modify the
 Strategy/Analysis JSON object below — you never touch code, file structure, or the blueprint.
 
 CURRENT STRATEGY ANALYSIS:
@@ -930,7 +930,7 @@ export default function HeaderNavbar() {
     <nav className="bg-slate-900 border-b border-white/10 px-4 py-3 flex items-center justify-between">
       <div className="flex items-center space-x-2">
         <Zap className="w-4 h-4 text-indigo-400" />
-        <span className="font-bold text-white text-sm">ProductForge SaaS</span>
+        <span className="font-bold text-white text-sm">Recast SaaS</span>
       </div>
       <div className="flex items-center space-x-3 text-xs text-slate-400">
         <span>Dashboard</span>

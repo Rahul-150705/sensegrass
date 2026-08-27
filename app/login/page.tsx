@@ -68,7 +68,7 @@ function LoginPageInner() {
           <div className="w-9 h-9 rounded-md bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20">
             <Sparkles className="w-4 h-4 text-neutral-950" />
           </div>
-          <span className="font-mono font-bold text-sm tracking-widest uppercase text-neutral-100">ProductForge</span>
+          <span className="font-mono font-bold text-sm tracking-widest uppercase text-neutral-100">Recast</span>
         </div>
 
         <div className="relative z-10 space-y-6">
@@ -85,7 +85,7 @@ function LoginPageInner() {
         </div>
 
         <div className="relative z-10 text-[11px] font-mono text-neutral-600 tracking-wide">
-          © {new Date().getFullYear()} PRODUCTFORGE — GROQ-POWERED MULTI-AGENT ENGINE
+          © {new Date().getFullYear()} RECAST — GROQ-POWERED MULTI-AGENT ENGINE
         </div>
       </div>
 
@@ -99,7 +99,7 @@ function LoginPageInner() {
             <div className="w-8 h-8 rounded-md bg-cyan-400 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-neutral-950" />
             </div>
-            <span className="font-mono font-bold text-xs tracking-widest uppercase">ProductForge</span>
+            <span className="font-mono font-bold text-xs tracking-widest uppercase">Recast</span>
           </div>
 
           <div className="space-y-2">

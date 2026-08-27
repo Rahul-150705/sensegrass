@@ -1,4 +1,4 @@
-# ProductForge
+# Recast
 
 > **AI-Powered SaaS Blueprint & Full-Stack Code Studio**  
 > Turn any public website into a complete, production-ready SaaS product using a multi-agent AI pipeline.
@@ -7,7 +7,7 @@
 
 ## What It Does
 
-ProductForge is an autonomous multi-agent SaaS engine. You provide a public URL and a product vision — the system:
+Recast is an autonomous multi-agent SaaS engine. You provide a public URL and a product vision — the system:
 
 1. **Scrapes** the target website (server-side Cheerio HTML extraction)
 2. **Analyzes** the extracted content using **Groq API (GPT-OSS 120B)** to generate a strategic product analysis and full-stack architecture file tree
@@ -81,7 +81,7 @@ User Input (URL + Vision Prompt)
 ### 1. Clone the repo
 ```bash
 git clone <your-repo-url>
-cd productforge
+cd recast
 ```
 
 ### 2. Install dependencies

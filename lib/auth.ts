@@ -7,7 +7,7 @@ export interface UserSession {
   token?: string;
 }
 
-const STORAGE_KEY = 'productforge_session';
+const STORAGE_KEY = 'recast_session';
 const COOKIE_NAME = 'session_token';
 
 // Set session cookie so middleware can read it for route protection.

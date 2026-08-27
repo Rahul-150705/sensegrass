@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     // ephemeral on serverless hosts — anything written there is silently lost.
     if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
       return NextResponse.json(
-        { error: 'Disk export only works when ProductForge runs on your own machine. Run the app locally to use this.' },
+        { error: 'Disk export only works when Recast runs on your own machine. Run the app locally to use this.' },
         { status: 501 }
       );
     }

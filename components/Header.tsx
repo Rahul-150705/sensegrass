@@ -24,7 +24,7 @@ export default function Header() {
           <div className="flex flex-col leading-none">
             <div className="flex items-center gap-2">
               <span className="font-mono font-bold text-sm tracking-widest uppercase text-neutral-100">
-                ProductForge
+                Recast
               </span>
               <span className="text-[9px] font-mono font-semibold uppercase tracking-wider bg-neutral-900 text-neutral-400 border border-white/10 px-1.5 py-0.5 rounded hidden sm:inline-block">
                 v0.1

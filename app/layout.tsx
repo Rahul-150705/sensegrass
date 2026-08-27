@@ -18,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'ProductForge - Website-to-Product AI Agent & SaaS Studio',
+  title: 'Recast - Website-to-Product AI Agent & SaaS Studio',
   description:
     'Transform any website into a complete SaaS product strategy, interactive blueprint, and working UI code with live AI refinement.',
 };

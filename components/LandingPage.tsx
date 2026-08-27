@@ -65,7 +65,7 @@ const FEATURES = [
 ];
 
 const HOW_IT_WORKS = [
-  { step: '01', title: 'Enter a URL', description: 'Point ProductForge at any public website and describe your product vision.', icon: Globe },
+  { step: '01', title: 'Enter a URL', description: 'Point Recast at any public website and describe your product vision.', icon: Globe },
   { step: '02', title: 'Strategy', description: 'The Groq analyst agent produces a structured product strategy you can refine in chat.', icon: Brain },
   { step: '03', title: 'File Directory', description: 'Groq plans the full project file tree and architecture from the finalized strategy.', icon: FolderTree },
   { step: '04', title: 'Build', description: 'Groq writes real code for every planned file — frontend, backend, and config.', icon: Code2 },
@@ -100,7 +100,7 @@ const PRICING = [
     description: 'SSO, dedicated capacity, and support SLAs.',
     features: ['Everything in Pro', 'SSO & RBAC', 'Dedicated model capacity', 'Custom integrations', 'Dedicated support'],
     cta: 'Contact Sales',
-    href: 'mailto:hello@productforge.dev',
+    href: 'mailto:hello@recast.dev',
     highlighted: false,
   },
 ];
@@ -115,7 +115,7 @@ export default function LandingPage() {
             <div className="w-8 h-8 rounded-md bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20">
               <Sparkles className="w-4 h-4 text-neutral-950" />
             </div>
-            <span className="font-mono font-bold text-sm tracking-widest uppercase text-neutral-100">ProductForge</span>
+            <span className="font-mono font-bold text-sm tracking-widest uppercase text-neutral-100">Recast</span>
           </div>
 
           <nav className="hidden md:flex items-center space-x-8 text-xs font-mono font-semibold uppercase tracking-wider text-neutral-400">
@@ -160,7 +160,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-base text-neutral-400 max-w-xl mx-auto leading-relaxed">
-              Paste a URL. ProductForge scrapes it, plans a product strategy, designs the file
+              Paste a URL. Recast scrapes it, plans a product strategy, designs the file
               architecture, writes real full-stack code, and hands you a live, running preview —
               all through one autonomous AI pipeline.
             </p>
@@ -247,7 +247,7 @@ export default function LandingPage() {
                   <div className="w-2.5 h-2.5 rounded-full bg-cyan-400/70"></div>
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/70"></div>
                 </div>
-                <span className="text-[11px] font-mono text-neutral-500">productforge.app/projects/studio</span>
+                <span className="text-[11px] font-mono text-neutral-500">recast.app/projects/studio</span>
               </div>
               <div className="flex h-72 sm:h-96">
                 <div className="w-32 sm:w-40 bg-neutral-950/60 border-r border-white/[0.08] p-3 space-y-2 text-[10px] font-mono shrink-0">
@@ -439,7 +439,7 @@ export default function LandingPage() {
               <div className="w-7 h-7 rounded-md bg-cyan-400 flex items-center justify-center">
                 <Sparkles className="w-3.5 h-3.5 text-neutral-950" />
               </div>
-              <span className="font-mono font-bold text-xs tracking-widest uppercase text-white">ProductForge</span>
+              <span className="font-mono font-bold text-xs tracking-widest uppercase text-white">Recast</span>
             </div>
             <p className="text-xs text-neutral-500 leading-relaxed">Autonomous multi-agent SaaS blueprint & code studio.</p>
             <div className="flex items-center gap-2.5 pt-1">
@@ -460,7 +460,7 @@ export default function LandingPage() {
             <h4 className="text-[11px] font-mono font-bold text-neutral-300 uppercase tracking-[0.15em]">Company</h4>
             <a href="#" className="block text-xs text-neutral-500 hover:text-cyan-400 transition-colors">About</a>
             <a href="#" className="block text-xs text-neutral-500 hover:text-cyan-400 transition-colors">Blog</a>
-            <a href="mailto:hello@productforge.dev" className="block text-xs text-neutral-500 hover:text-cyan-400 transition-colors">Contact</a>
+            <a href="mailto:hello@recast.dev" className="block text-xs text-neutral-500 hover:text-cyan-400 transition-colors">Contact</a>
           </div>
 
           <div className="space-y-2.5">
@@ -472,7 +472,7 @@ export default function LandingPage() {
 
         <div className="border-t border-white/[0.06] py-5 px-4 sm:px-6 lg:px-8">
           <p className="text-[11px] text-neutral-600 text-center font-mono">
-            © {new Date().getFullYear()} ProductForge. Built as a multi-agent AI demo product.
+            © {new Date().getFullYear()} Recast. Built as a multi-agent AI demo product.
           </p>
         </div>
       </footer>

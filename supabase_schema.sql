@@ -1,5 +1,5 @@
 -- ============================================================
--- ProductForge — Complete Supabase Schema
+-- Recast — Complete Supabase Schema
 -- Run this ONCE in Supabase Dashboard → SQL Editor → New Query
 -- ============================================================
 

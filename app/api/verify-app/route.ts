@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     // serverless, "localhost" is the function itself — the check is meaningless.
     if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
       return NextResponse.json(
-        { error: 'The local health check / self-healing verifier only works when running ProductForge on your own machine.' },
+        { error: 'The local health check / self-healing verifier only works when running Recast on your own machine.' },
         { status: 501 }
       );
     }

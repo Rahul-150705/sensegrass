@@ -1,6 +1,6 @@
-# AI Prompt Log — ProductForge
+# AI Prompt Log — Recast
 
-This document records all significant AI prompts, inputs, and outputs used during the development of ProductForge.
+This document records all significant AI prompts, inputs, and outputs used during the development of Recast.
 Required deliverable per project rubric.
 
 ---
