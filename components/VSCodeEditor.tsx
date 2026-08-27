@@ -104,16 +104,11 @@ export default function VSCodeEditor({
     >
       {/* VS Code Title Bar */}
       <div className="bg-ink-soft border-b border-line px-4 py-2 flex items-center justify-between text-xs">
-        {/* macOS Traffic Lights & Title */}
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-1.5">
-            <div className="w-3 h-3 rounded-full bg-rose-500/80"></div>
-            <div className="w-3 h-3 rounded-full bg-amber-400/80"></div>
-            <div className="w-3 h-3 rounded-full bg-emerald-500/80"></div>
-          </div>
-          <span className="font-mono text-[11px] text-steel font-semibold flex items-center gap-1.5">
-            <Code className="w-3.5 h-3.5 text-molten" />
-            <span>VS Code Workspace — {productName}</span>
+        {/* Title */}
+        <div className="flex items-center gap-2.5">
+          <span className="w-2 h-2 bg-molten" />
+          <span className="mono-label !text-[10px] !text-bone flex items-center gap-1.5">
+            CAST — {productName}
           </span>
         </div>
 

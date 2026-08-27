@@ -52,6 +52,36 @@ interface Msg {
   role: 'user' | 'assistant';
   content: string;
   applied?: boolean;
+  fresh?: boolean;
+}
+
+// Reveals text over ~1s regardless of length. Respects reduced-motion.
+function Typewriter({ text }: { text: string }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setN(text.length);
+      return;
+    }
+    setN(0);
+    const step = Math.max(1, Math.ceil(text.length / 60));
+    const iv = setInterval(() => {
+      setN((p) => {
+        if (p >= text.length) {
+          clearInterval(iv);
+          return text.length;
+        }
+        return p + step;
+      });
+    }, 16);
+    return () => clearInterval(iv);
+  }, [text]);
+  return (
+    <>
+      {text.slice(0, n)}
+      {n < text.length && <span className="caret h-3.5 align-middle" />}
+    </>
+  );
 }
 
 export default function StageChat({ stage, projectId, initialMessages, onApplied, onRefresh }: StageChatProps) {
@@ -85,13 +115,13 @@ export default function StageChat({ stage, projectId, initialMessages, onApplied
       if (!res.ok || !data.success) throw new Error(data.error || `Failed to refine the ${cfg.noun}.`);
       setMessages((p) => [
         ...p,
-        { id: crypto.randomUUID(), role: 'assistant', content: data.assistantMessage, applied: data.applied },
+        { id: crypto.randomUUID(), role: 'assistant', content: data.assistantMessage, applied: data.applied, fresh: true },
       ]);
       if (data.applied && data[cfg.key]) onApplied(data[cfg.key]);
     } catch (err: any) {
       setMessages((p) => [
         ...p,
-        { id: crypto.randomUUID(), role: 'assistant', content: err?.message || 'Something went wrong. Try rephrasing.', applied: false },
+        { id: crypto.randomUUID(), role: 'assistant', content: err?.message || 'Something went wrong. Try rephrasing.', applied: false, fresh: true },
       ]);
     } finally {
       setSending(false);
@@ -164,7 +194,9 @@ export default function StageChat({ stage, projectId, initialMessages, onApplied
                 <div className="mono-label !text-[9px] mb-1" style={m.role === 'assistant' ? { color: 'var(--molten)' } : undefined}>
                   {m.role === 'user' ? 'You' : 'Recast'}
                 </div>
-                <p className="text-[13px] text-bone/90 leading-relaxed whitespace-pre-wrap">{m.content}</p>
+                <p className="text-[13px] text-bone/90 leading-relaxed whitespace-pre-wrap">
+                  {m.role === 'assistant' && m.fresh ? <Typewriter text={m.content} /> : m.content}
+                </p>
                 {m.role === 'assistant' && m.applied === true && (
                   <div className="mt-1.5 flex items-center gap-3">
                     <span className="mono-label !text-[9px] !text-molten">● applied</span>

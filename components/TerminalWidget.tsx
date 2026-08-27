@@ -144,21 +144,13 @@ export default function TerminalWidget({
   };
 
   return (
-    <div className="bg-ink-soft border border-line rounded-none p-6 sm:p-8  space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-line pb-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-none bg-ink border border-line flex items-center justify-center text-molten">
-            <Terminal className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-bone flex items-center gap-2">
-              Terminal File System Writer & Self-Healing Verifier
-            </h3>
-            <p className="text-xs text-steel">Target path prompt, file writer, and automated health checks.</p>
-          </div>
-        </div>
+    <div className="panel recast-in">
+      <div className="rule-b border-line p-4 sm:p-5">
+        <span className="section-num">05 — EXPORT</span>
+        <h3 className="font-display text-lg font-semibold text-bone mt-1.5">Write to disk &amp; verify</h3>
+        <p className="text-[12px] text-steel mt-0.5">Local-only — files land in a sandboxed <code className="text-molten">.exports/</code> folder on your machine.</p>
       </div>
+      <div className="p-4 sm:p-5 space-y-5">
 
       {/* Location Input Form */}
       <div className="space-y-2 bg-ink border border-line p-4 rounded-none">
@@ -254,6 +246,7 @@ export default function TerminalWidget({
             </>
           )}
         </button>
+      </div>
       </div>
     </div>
   );

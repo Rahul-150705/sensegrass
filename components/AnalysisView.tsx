@@ -34,7 +34,7 @@ function List({ items, marker = '—' }: { items: string[]; marker?: string }) {
 
 export default function AnalysisView({ analysis, scrapedInfo, onBuildProduct, isBuilding }: AnalysisViewProps) {
   return (
-    <div className="panel">
+    <div className="panel recast-in">
       {/* header */}
       <div className="rule-b border-line p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>

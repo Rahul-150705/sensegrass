@@ -7,6 +7,7 @@ import AnalysisView from '@/components/AnalysisView';
 import FileDirectoryView from '@/components/FileDirectoryView';
 import BlueprintView from '@/components/BlueprintView';
 import StageChat from '@/components/StageChat';
+import SourceCastDiff from '@/components/SourceCastDiff';
 import BuildProgress, { BuildCategoryStatus } from '@/components/BuildProgress';
 import PipelineStepper from '@/components/PipelineStepper';
 import TerminalWidget from '@/components/TerminalWidget';
@@ -390,8 +391,8 @@ export default function ProjectStudioPage() {
         </div>
       </div>
 
-      {/* Main Workspace Content */}
-      <main className="flex-1 max-w-7xl mx-auto px-5 sm:px-8 py-8 w-full space-y-6">
+      {/* Main Workspace Content — remounts per stage so it re-typesets */}
+      <main key={activeTab} className="flex-1 max-w-7xl mx-auto px-5 sm:px-8 py-8 w-full space-y-6 recast-in">
         {activeTab === 'pipeline' ? (
           <div className="max-w-3xl mx-auto space-y-6">
             <PipelineStepper
@@ -415,21 +416,38 @@ export default function ProjectStudioPage() {
             )}
           </div>
         ) : activeTab === 'analysis' && project.analysis ? (
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
-            <AnalysisView
-              analysis={project.analysis}
-              scrapedInfo={project.scrapedInfo}
-              onBuildProduct={() => setActiveTab('fileDirectory')}
-              isBuilding={false}
+          <div className="max-w-7xl mx-auto space-y-4">
+            <SourceCastDiff
+              compact
+              sourceLabel={project.scrapedInfo?.url || 'brief'}
+              source={[
+                { k: 'title', v: project.scrapedInfo?.title || project.description.slice(0, 60) },
+                { k: 'headings', v: `${project.scrapedInfo?.headings?.length ?? 0} scraped` },
+                { k: 'reads as', v: project.analysis.summary.slice(0, 90) },
+              ]}
+              castLabel="strategy"
+              cast={[
+                { k: 'problem', v: project.analysis.coreProblem.slice(0, 90) },
+                { k: 'model', v: project.analysis.businessModel.slice(0, 70) },
+                { k: 'features', v: `${project.analysis.keyFeatures.length} key features` },
+              ]}
             />
-            <div className="h-[600px] lg:sticky lg:top-20">
-              <StageChat
-                stage="strategy"
-                projectId={project.id}
-                initialMessages={project.strategyChatHistory || []}
-                onApplied={(a) => setProject((prev) => (prev ? { ...prev, analysis: a } : null))}
-                onRefresh={refreshProjectSilently}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
+              <AnalysisView
+                analysis={project.analysis}
+                scrapedInfo={project.scrapedInfo}
+                onBuildProduct={() => setActiveTab('fileDirectory')}
+                isBuilding={false}
               />
+              <div className="h-[600px] lg:sticky lg:top-20">
+                <StageChat
+                  stage="strategy"
+                  projectId={project.id}
+                  initialMessages={project.strategyChatHistory || []}
+                  onApplied={(a) => setProject((prev) => (prev ? { ...prev, analysis: a } : null))}
+                  onRefresh={refreshProjectSilently}
+                />
+              </div>
             </div>
           </div>
         ) : activeTab === 'fileDirectory' && project.analysis ? (
@@ -463,6 +481,22 @@ export default function ProjectStudioPage() {
                       <span className="section-num">03 — BLUEPRINT</span>
                       <p className="text-[11px] text-steel mt-1">Change the proposed product in plain English, then review the file tree below.</p>
                     </div>
+                    {project.analysis && (
+                      <SourceCastDiff
+                        compact
+                        sourceLabel="strategy"
+                        source={[
+                          { k: 'users', v: project.analysis.targetUsers.join(', ').slice(0, 70) },
+                          { k: 'problem', v: project.analysis.coreProblem.slice(0, 90) },
+                        ]}
+                        castLabel="product"
+                        cast={[
+                          { k: 'name', v: project.blueprint.productName },
+                          { k: 'tagline', v: project.blueprint.tagline },
+                          { k: 'scope', v: `${project.blueprint.features.length} features · ${project.blueprint.pages.length} pages` },
+                        ]}
+                      />
+                    )}
                     <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
                       <BlueprintView blueprint={project.blueprint} />
                       <div className="h-[600px] lg:sticky lg:top-20">

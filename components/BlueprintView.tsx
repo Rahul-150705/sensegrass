@@ -19,7 +19,7 @@ function Block({ label, children }: { label: string; children: React.ReactNode }
 
 export default function BlueprintView({ blueprint, onGenerateUI, isGeneratingUI }: BlueprintViewProps) {
   return (
-    <div className="panel">
+    <div className="panel recast-in">
       <div className="rule-b border-line p-4 sm:p-5">
         <span className="section-num">03 — BLUEPRINT</span>
         <h2 className="font-display text-xl font-semibold text-bone mt-1.5">{blueprint.productName}</h2>

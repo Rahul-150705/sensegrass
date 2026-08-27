@@ -32,7 +32,7 @@ export default function FileDirectoryView({ fileDirectory, onBuildProduct, isBui
   }, {});
 
   return (
-    <div className="panel">
+    <div className="panel recast-in">
       <div className="rule-b border-line p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <span className="section-num">04 — FILE TREE</span>
