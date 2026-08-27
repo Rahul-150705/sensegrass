@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ChatMessage } from '@/types';
 import { getAuthToken } from '@/lib/auth';
 
-type Stage = 'strategy' | 'blueprint' | 'fileDirectory';
+type Stage = 'strategy' | 'blueprint' | 'fileDirectory' | 'product';
 
 const CONFIG: Record<
   Stage,
@@ -36,6 +36,23 @@ const CONFIG: Record<
     key: 'fileDirectory',
     noun: 'file tree',
     presets: ['Add a database layer', 'Add a webhooks endpoint', 'What am I missing?'],
+  },
+  // One assistant for the whole product plan — blueprint + file tree together.
+  product: {
+    title: 'Product assistant',
+    sub: 'Change the blueprint, the file tree, or both',
+    refine: '/api/product/refine',
+    clear: '/api/product/clear',
+    key: 'product',
+    noun: 'product plan',
+    presets: [
+      'Make the design more premium',
+      'Add a dashboard',
+      'Remove the pricing page',
+      'Add a webhooks endpoint',
+      'Add a database layer',
+      'What am I missing?',
+    ],
   },
 };
 
@@ -117,7 +134,10 @@ export default function StageChat({ stage, projectId, initialMessages, onApplied
         ...p,
         { id: crypto.randomUUID(), role: 'assistant', content: data.assistantMessage, applied: data.applied, fresh: true },
       ]);
-      if (data.applied && data[cfg.key]) onApplied(data[cfg.key]);
+      if (data.applied) {
+        if (stage === 'product') onApplied({ blueprint: data.blueprint, fileDirectory: data.fileDirectory });
+        else if (data[cfg.key]) onApplied(data[cfg.key]);
+      }
     } catch (err: any) {
       setMessages((p) => [
         ...p,

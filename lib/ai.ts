@@ -7,6 +7,8 @@ import {
   StrategyRefineResult,
   refineBlueprintWithGroq,
   BlueprintRefineResult,
+  refineProductPlanWithGroq,
+  ProductPlanRefineResult,
   generateStarterUICodeWithGroq,
   generateFullStackCodeWithGroq,
   refineWithGroq,
@@ -126,6 +128,17 @@ export async function refineBlueprint(
   chatHistory: { role: string; content: string }[]
 ): Promise<BlueprintRefineResult> {
   return refineBlueprintWithGroq(current, userInstruction, chatHistory);
+}
+
+// One assistant for the whole product plan — edits the blueprint, the file
+// directory, or both from a single instruction, keeping them consistent.
+export async function refineProductPlan(
+  currentBlueprint: ProductBlueprint,
+  currentFileDirectory: ProductFileDirectory,
+  userInstruction: string,
+  chatHistory: { role: string; content: string }[]
+): Promise<ProductPlanRefineResult> {
+  return refineProductPlanWithGroq(currentBlueprint, currentFileDirectory, userInstruction, chatHistory);
 }
 
 export async function refineProduct(

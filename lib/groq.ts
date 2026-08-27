@@ -317,6 +317,124 @@ export interface FileDirectoryRefineResult {
   assistantMessage: string;
 }
 
+// ─── Unified product-plan refine (blueprint + file tree in one conversation) ──
+// One assistant that can edit the ProductBlueprint, the ProductFileDirectory,
+// or both from a single instruction — and keeps them consistent (e.g. removing
+// the pricing page drops it from both the blueprint pages and the file tree).
+export interface ProductPlanRefineResult {
+  applied: boolean;
+  updatedBlueprint: ProductBlueprint;
+  updatedFileDirectory: ProductFileDirectory;
+  assistantMessage: string;
+}
+
+export async function refineProductPlanWithGroq(
+  currentBlueprint: ProductBlueprint,
+  currentFileDirectory: ProductFileDirectory,
+  userInstruction: string,
+  chatHistory: { role: string; content: string }[]
+): Promise<ProductPlanRefineResult> {
+  if (!groq) {
+    return {
+      applied: false,
+      updatedBlueprint: currentBlueprint,
+      updatedFileDirectory: currentFileDirectory,
+      assistantMessage: 'Groq is not configured (GROQ_API_KEY missing), so I can’t change the product plan right now.',
+    };
+  }
+
+  try {
+    const systemPrompt = `You are the Groq AI Product Architect Agent for Recast. You read and modify TWO JSON
+objects that together define the product plan: the BLUEPRINT (name, tagline, description, target customer,
+features, navigation, pages, UI direction) and the FILE DIRECTORY (planned file tree, routes, components,
+data entities, external integrations). You never write code and never touch the strategy analysis.
+
+CURRENT BLUEPRINT:
+${JSON.stringify(currentBlueprint, null, 2)}
+
+CURRENT FILE DIRECTORY:
+${JSON.stringify(currentFileDirectory, null, 2)}
+
+Rules:
+1. Apply the user's instruction to whichever object(s) it affects — the blueprint, the file directory, or
+   both — and KEEP THEM CONSISTENT. E.g. "remove the pricing page" drops it from blueprint.pages AND
+   blueprint.navigation AND any pricing route/file in the directory; "add a webhooks endpoint" adds the
+   route/file to the directory and, if user-facing, a matching page to the blueprint.
+2. Return the COMPLETE updated versions of BOTH objects every time — every field, including everything the
+   instruction didn't touch, copied over unchanged.
+3. If the user is asking a question or wants a recommendation (not giving an instruction), do NOT change
+   anything. Set "applied" to false, return both objects UNCHANGED, put your recommendation in
+   "assistantMessage".
+4. Always write a short natural-language "assistantMessage" saying what changed (if applied) or what you
+   recommend (if not).
+
+Respond ONLY with valid JSON matching this exact schema:
+{
+  "applied": true or false,
+  "updatedBlueprint": {
+    "productName": "string", "tagline": "string", "description": "string", "targetCustomer": "string",
+    "features": [{ "name": "string", "description": "string", "priority": "high|medium|low" }],
+    "navigation": ["string", ...],
+    "pages": [{ "path": "string", "title": "string", "description": "string" }],
+    "uiDirection": { "style": "string", "colorScheme": "string", "typography": "string", "designKeywords": ["string", ...] }
+  },
+  "updatedFileDirectory": {
+    "files": [{ "path": "string", "name": "string", "type": "frontend|backend|config|database", "language": "string", "purpose": "string" }],
+    "routes": [{ "path": "string", "kind": "page|api", "description": "string" }],
+    "components": ["string", ...],
+    "dataEntities": [{ "name": "string", "description": "string" }],
+    "externalIntegrations": ["string", ...]
+  },
+  "assistantMessage": "string"
+}`;
+
+    const formattedHistory = chatHistory.slice(-12).map((m) => ({
+      role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: m.content,
+    }));
+
+    const response = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...formattedHistory,
+        { role: 'user', content: userInstruction },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.4,
+    });
+
+    const content = response.choices[0]?.message?.content || '{}';
+    const parsed = JSON.parse(content);
+    if (!parsed.assistantMessage) {
+      throw new Error('Groq product-plan refine returned an incomplete response.');
+    }
+
+    const bp = parsed.updatedBlueprint || {};
+    const fd = parsed.updatedFileDirectory || {};
+
+    return {
+      applied: Boolean(parsed.applied),
+      updatedBlueprint: {
+        ...currentBlueprint,
+        ...bp,
+        uiDirection: { ...currentBlueprint.uiDirection, ...(bp.uiDirection || {}) },
+        generatedFiles: currentBlueprint.generatedFiles,
+      },
+      updatedFileDirectory: { ...currentFileDirectory, ...fd },
+      assistantMessage: parsed.assistantMessage,
+    };
+  } catch (err) {
+    console.error('Groq Product Plan Refine Error:', err);
+    return {
+      applied: false,
+      updatedBlueprint: currentBlueprint,
+      updatedFileDirectory: currentFileDirectory,
+      assistantMessage: 'Sorry, I ran into an error trying to process that. Please try rephrasing your request.',
+    };
+  }
+}
+
 export async function refineFileDirectoryWithGroq(
   current: ProductFileDirectory,
   userInstruction: string,

@@ -463,67 +463,54 @@ export default function ProjectStudioPage() {
             ) : isBuildingProduct ? (
               <BuildProgress categories={buildCategories} />
             ) : (
-              <div className="space-y-8">
-                {/* Proposed product — edit name / features / navigation / pages /
-                    UI direction in plain English before planning the file tree. */}
-                {project.blueprint && (
-                  <div className="space-y-3">
-                    <div className="rule-b border-line pb-2">
-                      <span className="section-num">03 — BLUEPRINT</span>
-                      <p className="text-[11px] text-steel mt-1">Change the proposed product in plain English, then review the file tree below.</p>
-                    </div>
-                    {project.analysis && (
-                      <SourceCastDiff
-                        compact
-                        sourceLabel="strategy"
-                        source={[
-                          { k: 'users', v: project.analysis.targetUsers.join(', ').slice(0, 70) },
-                          { k: 'problem', v: project.analysis.coreProblem.slice(0, 90) },
-                        ]}
-                        castLabel="product"
-                        cast={[
-                          { k: 'name', v: project.blueprint.productName },
-                          { k: 'tagline', v: project.blueprint.tagline },
-                          { k: 'scope', v: `${project.blueprint.features.length} features · ${project.blueprint.pages.length} pages` },
-                        ]}
-                      />
-                    )}
-                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
-                      <BlueprintView blueprint={project.blueprint} />
-                      <div className="h-[600px] lg:sticky lg:top-20">
-                        <StageChat
-                          stage="blueprint"
-                          projectId={project.id}
-                          initialMessages={project.blueprintChatHistory || []}
-                          onApplied={(b) => setProject((prev) => (prev ? { ...prev, blueprint: b } : null))}
-                          onRefresh={refreshProjectSilently}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  <div className="rule-b border-line pb-2">
-                    <span className="section-num">04 — FILE TREE</span>
-                    <p className="text-[11px] text-steel mt-1">The exact files Build will generate. Refine, then write the code.</p>
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
-                    <FileDirectoryView
-                      fileDirectory={project.fileDirectory}
-                      onBuildProduct={handleBuildProduct}
-                      isBuilding={isBuildingProduct}
+              /* One assistant for the whole product plan — blueprint + file tree */
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 items-start">
+                <div className="space-y-6 min-w-0">
+                  {project.analysis && (
+                    <SourceCastDiff
+                      compact
+                      sourceLabel="strategy"
+                      source={[
+                        { k: 'users', v: project.analysis.targetUsers.join(', ').slice(0, 70) },
+                        { k: 'problem', v: project.analysis.coreProblem.slice(0, 90) },
+                      ]}
+                      castLabel="product"
+                      cast={[
+                        { k: 'name', v: project.blueprint?.productName || '—' },
+                        { k: 'tagline', v: project.blueprint?.tagline || '—' },
+                        { k: 'scope', v: `${project.blueprint?.features.length ?? 0} features · ${project.blueprint?.pages.length ?? 0} pages · ${project.fileDirectory.files.length} files` },
+                      ]}
                     />
-                    <div className="h-[600px] lg:sticky lg:top-20">
-                      <StageChat
-                        stage="fileDirectory"
-                        projectId={project.id}
-                        initialMessages={project.fileDirectoryChatHistory || []}
-                        onApplied={(fd) => setProject((prev) => (prev ? { ...prev, fileDirectory: fd } : null))}
-                        onRefresh={refreshProjectSilently}
-                      />
-                    </div>
-                  </div>
+                  )}
+                  {project.blueprint && <BlueprintView blueprint={project.blueprint} />}
+                  <FileDirectoryView
+                    fileDirectory={project.fileDirectory}
+                    onBuildProduct={handleBuildProduct}
+                    isBuilding={isBuildingProduct}
+                  />
+                </div>
+
+                <div className="lg:sticky lg:top-20 h-[560px] lg:h-[calc(100vh-9rem)]">
+                  <StageChat
+                    stage="product"
+                    projectId={project.id}
+                    initialMessages={[
+                      ...(project.blueprintChatHistory || []),
+                      ...(project.fileDirectoryChatHistory || []),
+                    ].sort((a, b) => a.createdAt.localeCompare(b.createdAt))}
+                    onApplied={(u: { blueprint?: any; fileDirectory?: any }) =>
+                      setProject((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              blueprint: u.blueprint ?? prev.blueprint,
+                              fileDirectory: u.fileDirectory ?? prev.fileDirectory,
+                            }
+                          : null
+                      )
+                    }
+                    onRefresh={refreshProjectSilently}
+                  />
                 </div>
               </div>
             )}
