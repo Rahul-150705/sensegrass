@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ShaderBackground } from './ShaderBackground';
 import {
   Sparkles,
   Globe,
@@ -107,9 +108,17 @@ const PRICING = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-100 selection:bg-cyan-400 selection:text-neutral-950">
+    <div className="relative isolate min-h-screen flex flex-col text-neutral-100 selection:bg-cyan-400 selection:text-neutral-950">
+      {/* Animated Halftone-Dots shader backdrop (WebGL). Sits behind everything;
+          the scrim keeps copy readable. Falls back to the solid <body> bg if
+          WebGL is unavailable. */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
+        <ShaderBackground className="h-full w-full opacity-70" />
+        <div className="absolute inset-0 bg-neutral-950/72" />
+      </div>
+
       {/* ── Nav ───────────────────────────────────────────────────────── */}
-      <header className="border-b border-white/[0.06] bg-neutral-950/80 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-white/[0.06] bg-neutral-950/70 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 rounded-md bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20">
