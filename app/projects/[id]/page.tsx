@@ -146,39 +146,52 @@ export default function ProjectStudioPage() {
     }
   };
 
-  // Builds one category, retrying with a real 60s cooldown (with a visible
-  // countdown) if Groq rate-limits us — instead of silently reporting
-  // "success" with blank placeholder files.
-  const buildCategory = async (
-    type: string,
-    label: string,
-    attempt = 1
-  ): Promise<boolean> => {
-    setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'loading' } : c)));
+  // Generate ONE planned file, retrying with a real 60s cooldown (visible
+  // countdown on its category) if Groq rate-limits us.
+  const buildOneFile = async (type: string, filePath: string, attempt = 1): Promise<boolean> => {
     try {
       const res = await fetch('/api/build', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ projectId, category: type }),
+        body: JSON.stringify({ projectId, filePath }),
       });
       const data = await res.json();
 
       if (res.ok && data.success) {
         setProject((prev) => (prev ? { ...prev, generatedFiles: data.generatedFiles } : null));
-        setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'done' } : c)));
         return true;
       }
-
       if (data.rateLimited && attempt < MAX_ATTEMPTS_PER_CATEGORY) {
         await waitWithCountdown(type, RATE_LIMIT_WAIT_SECONDS);
-        return buildCategory(type, label, attempt + 1);
+        return buildOneFile(type, filePath, attempt + 1);
       }
-
-      throw new Error(data.error || `Failed to build ${label}`);
+      return false;
     } catch {
-      setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'error' } : c)));
       return false;
     }
+  };
+
+  // Build a category file-by-file so progress reads "5/10". A single failed
+  // file marks the whole category failed (retry re-runs the whole category).
+  const buildCategory = async (type: string, _label: string): Promise<boolean> => {
+    const catFiles = project?.fileDirectory?.files.filter((f) => f.type === type) || [];
+    setBuildCategories((prev) =>
+      prev.map((c) => (c.type === type ? { ...c, status: 'loading', done: 0, total: catFiles.length } : c))
+    );
+
+    let done = 0;
+    for (const f of catFiles) {
+      const ok = await buildOneFile(type, f.path);
+      if (!ok) {
+        setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'error', done } : c)));
+        return false;
+      }
+      done += 1;
+      setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'loading', done } : c)));
+    }
+
+    setBuildCategories((prev) => prev.map((c) => (c.type === type ? { ...c, status: 'done', done } : c)));
+    return true;
   };
 
   const [isRetryingBuild, setIsRetryingBuild] = useState(false);

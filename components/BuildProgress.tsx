@@ -6,6 +6,8 @@ export interface BuildCategoryStatus {
   fileCount: number;
   status: 'pending' | 'loading' | 'done' | 'error' | 'rate-limited';
   retryInSeconds?: number;
+  done?: number;
+  total?: number;
 }
 
 interface BuildProgressProps {
@@ -17,11 +19,13 @@ interface BuildProgressProps {
 }
 
 function tag(c: BuildCategoryStatus) {
+  const total = c.total ?? c.fileCount;
+  const done = c.done ?? 0;
   switch (c.status) {
-    case 'done': return { t: '● written', color: 'var(--steel)' };
-    case 'loading': return { t: '● writing…', color: 'var(--molten)' };
-    case 'rate-limited': return { t: `● retry ${c.retryInSeconds ?? 60}s`, color: 'var(--molten)' };
-    case 'error': return { t: '● failed', color: 'var(--molten)' };
+    case 'done': return { t: `● ${total}/${total}`, color: 'var(--steel)' };
+    case 'loading': return { t: `● ${done}/${total} files`, color: 'var(--molten)' };
+    case 'rate-limited': return { t: `● ${done}/${total} · retry ${c.retryInSeconds ?? 60}s`, color: 'var(--molten)' };
+    case 'error': return { t: `● failed at ${done}/${total}`, color: 'var(--molten)' };
     default: return { t: '○ queued', color: 'var(--steel)' };
   }
 }

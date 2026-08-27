@@ -7,6 +7,7 @@ import {
   ProductFileDirectory,
   FileDirectoryEntry,
 } from '@/types';
+import { tidyFileContent } from '@/lib/format';
 
 const groqApiKey = process.env.GROQ_API_KEY || '';
 export const isGroqConfigured = Boolean(
@@ -808,14 +809,15 @@ export async function generateFullStackCodeWithGroq(
   return generated;
 }
 
-async function generateSingleFileWithGroq(
+export async function generateSingleFileWithGroq(
   blueprint: ProductBlueprint,
   file: ProjectFile
 ): Promise<ProjectFile> {
-  const prompt = `You are the Groq Code Agent. Write the complete, production-ready contents of ONE file for a modern full-stack web application.
+  const isJson = file.path.toLowerCase().endsWith('.json');
+  const prompt = `You are the Groq Code Agent. Write the COMPLETE, production-ready contents of exactly ONE file
+for a Next.js 14 (App Router) + TypeScript + Tailwind CSS project.
 
-PRODUCT NAME: ${blueprint.productName}
-TAGLINE: ${blueprint.tagline}
+PRODUCT: ${blueprint.productName} — ${blueprint.tagline}
 DESCRIPTION: ${blueprint.description}
 
 FILE TO WRITE:
@@ -823,15 +825,30 @@ FILE TO WRITE:
 - Type: ${file.type}
 - Language: ${file.language}
 
-Respond ONLY with valid JSON matching this schema:
-{ "content": "the full file contents as a single string" }`;
+STRICT OUTPUT RULES — follow every one:
+1. Return the file's ENTIRE contents. Never truncate, never abbreviate, never leave "// ..." placeholders.
+2. It MUST be syntactically valid and immediately compilable.
+3. Format it properly: real newlines, 2-space indentation, one statement per line. NEVER minify or put the
+   whole file on one line.
+4. No markdown code fences, no backticks around the file, no commentary before or after — just the code.
+5. Imports at the top, then the rest, in a natural top-to-bottom order.
+6. A React component file that uses hooks/state/handlers MUST start with "'use client';".
+${
+  isJson
+    ? `7. This is a JSON file: output valid, pretty-printed JSON with 2-space indentation (multi-line, one key
+   per line). For package.json use this key order: name, version, private, type, scripts, dependencies,
+   devDependencies. Pin real, current versions (e.g. "next": "14.2.24", "react": "18.3.1").`
+    : `7. Use only real, importable packages (react, next, lucide-react, tailwind utility classes).`
+}
+
+Respond ONLY with valid JSON: { "content": "<the full file contents as one JSON string, with \\n for newlines>" }`;
 
   try {
     const response = await groq!.chat.completions.create({
       model: GROQ_MODEL,
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
-      temperature: 0.4,
+      temperature: 0.25,
     });
 
     const raw = response.choices[0]?.message?.content || '';
@@ -847,7 +864,7 @@ Respond ONLY with valid JSON matching this schema:
       throw new GroqGenerationError(`Groq returned no content for ${file.path}.`);
     }
 
-    return { ...file, content };
+    return { ...file, content: tidyFileContent(file.path, content) };
   } catch (err) {
     if (isRateLimitError(err)) {
       console.warn('Groq rate limit hit during code generation:', (err as any)?.message);

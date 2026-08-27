@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from '@/lib/auth-server';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { createZip, ZipEntry } from '@/lib/zip';
 import { scaffoldFiles } from '@/lib/scaffold';
+import { tidyFileContent } from '@/lib/format';
 import { ProjectFile } from '@/types';
 import { NextResponse } from 'next/server';
 
@@ -41,7 +42,10 @@ export async function POST(request: Request) {
     // Generated files win; scaffold fills every gap needed to actually run.
     const tree = new Map<string, string>();
     for (const f of files) {
-      if (f?.path && typeof f.content === 'string') tree.set(f.path.replace(/^\/+/, ''), f.content);
+      if (f?.path && typeof f.content === 'string') {
+        const p = f.path.replace(/^\/+/, '');
+        tree.set(p, tidyFileContent(p, f.content));
+      }
     }
     const scaffold = scaffoldFiles(slug);
     for (const [path, content] of Object.entries(scaffold)) {

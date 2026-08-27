@@ -19,13 +19,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 });
     }
 
-    // Generous — the client issues one call per file category (plus cooldown
-    // retries) during a single build. This only trips on genuine abuse.
-    const limited = enforceRateLimit(user.id, 'build', 60, 60_000);
+    // The client issues one call per FILE during a build (plus cooldown
+    // retries). Generous cap — only trips on genuine abuse.
+    const limited = enforceRateLimit(user.id, 'build', 150, 60_000);
     if (limited) return limited;
 
     const body = await request.json();
-    const { projectId, category } = body;
+    const { projectId, category, filePath } = body;
 
     if (!projectId) {
       return NextResponse.json({ error: 'Project ID is required.' }, { status: 400 });
@@ -48,11 +48,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const plannedFiles = category
+    // filePath (one file) takes precedence over category (a whole group).
+    const plannedFiles = filePath
+      ? project.fileDirectory.files.filter((f) => f.path === filePath)
+      : category
       ? project.fileDirectory.files.filter((f) => f.type === category)
       : project.fileDirectory.files;
 
     if (plannedFiles.length === 0) {
+      if (filePath) {
+        return NextResponse.json({ error: `Planned file not found: ${filePath}` }, { status: 404 });
+      }
       return NextResponse.json({
         success: true,
         category: category || null,
