@@ -67,7 +67,7 @@ export default function AppRail() {
       {/* Icon rail — left on desktop, bottom bar on mobile */}
       <nav
         aria-label="Primary"
-        className={`fixed z-40 flex items-center gap-1 rounded-full border border-white/12 bg-ink-2 p-1.5 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.75)] transition-all duration-500
+        className={`fixed z-40 flex items-center gap-1 rounded-full border border-molten/40 bg-ink-2/90 p-1.5 backdrop-blur-md shadow-[0_12px_40px_-8px_rgba(0,0,0,0.75),0_0_0_1px_rgba(255,74,28,0.06),0_0_28px_-6px_rgba(255,74,28,0.35)] transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]
           left-1/2 bottom-4 -translate-x-1/2 flex-row
           md:left-4 md:top-1/2 md:bottom-auto md:translate-x-0 md:-translate-y-1/2 md:flex-col
           ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
@@ -79,16 +79,19 @@ export default function AppRail() {
               key={label}
               href={href}
               aria-label={label}
-              className={`group relative grid h-10 w-10 place-items-center rounded-full transition-colors ${
+              className={`group relative grid h-10 w-10 place-items-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform hover:scale-[1.08] active:scale-95 ${
                 active
                   ? 'text-molten bg-molten/10 ring-1 ring-inset ring-molten/50'
-                  : 'text-bone/55 hover:text-bone hover:bg-white/[0.05]'
+                  : 'text-bone/55 hover:text-bone hover:bg-molten/10'
               }`}
             >
-              <Icon className="w-[18px] h-[18px]" strokeWidth={active ? 2.5 : 2} />
+              <Icon
+                className="w-[18px] h-[18px] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                strokeWidth={active ? 2.5 : 2}
+              />
 
               {/* Hover-expand label (desktop rail only) */}
-              <span className="pointer-events-none absolute left-full ml-3 hidden md:block whitespace-nowrap rounded-full border border-white/12 bg-ink-2 px-2.5 py-1 mono-label !text-[9px] !text-bone opacity-0 -translate-x-1 transition-all duration-150 group-hover:opacity-100 group-hover:translate-x-0">
+              <span className="pointer-events-none absolute left-full ml-3 hidden md:block whitespace-nowrap rounded-full border border-molten/30 bg-ink-2/90 backdrop-blur-md px-2.5 py-1 mono-label !text-[9px] !text-bone opacity-0 -translate-x-1 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:opacity-100 group-hover:translate-x-0">
                 {label}
               </span>
             </Link>
