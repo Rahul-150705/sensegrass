@@ -358,10 +358,10 @@ features, navigation, pages, UI direction) and the FILE DIRECTORY (planned file 
 data entities, external integrations). You never write code and never touch the strategy analysis.
 
 CURRENT BLUEPRINT:
-${JSON.stringify(currentBlueprint, null, 2)}
+${JSON.stringify(currentBlueprint)}
 
 CURRENT FILE DIRECTORY:
-${JSON.stringify(currentFileDirectory, null, 2)}
+${JSON.stringify(currentFileDirectory)}
 
 Rules:
 1. Apply the user's instruction to whichever object(s) it affects — the blueprint, the file directory, or
@@ -410,9 +410,22 @@ Respond ONLY with valid JSON matching this exact schema:
       ],
       response_format: { type: 'json_object' },
       temperature: 0.4,
+      // The model must echo BOTH full objects (blueprint + file directory) plus
+      // a message — for a large file tree that overruns Groq's default output
+      // cap and truncates the JSON. Give it real headroom.
+      max_tokens: 32000,
     });
 
     const content = response.choices[0]?.message?.content || '{}';
+    if (response.choices[0]?.finish_reason === 'length') {
+      return {
+        applied: false,
+        updatedBlueprint: currentBlueprint,
+        updatedFileDirectory: currentFileDirectory,
+        assistantMessage:
+          'That change made the plan too large for one response. Try a more specific instruction (one feature or file at a time), or trim the file tree first.',
+      };
+    }
     const parsed = JSON.parse(content);
     if (!parsed.assistantMessage) {
       throw new Error('Groq product-plan refine returned an incomplete response.');
@@ -434,11 +447,17 @@ Respond ONLY with valid JSON matching this exact schema:
     };
   } catch (err) {
     console.error('Groq Product Plan Refine Error:', err);
+    const rateLimited = isRateLimitError(err);
+    const parseFail = err instanceof SyntaxError;
     return {
       applied: false,
       updatedBlueprint: currentBlueprint,
       updatedFileDirectory: currentFileDirectory,
-      assistantMessage: 'Sorry, I ran into an error trying to process that. Please try rephrasing your request.',
+      assistantMessage: rateLimited
+        ? 'Groq is rate-limiting right now (free tier). Wait about 30 seconds and send that again.'
+        : parseFail
+        ? 'The response came back malformed — usually the plan is too large. Try one small change at a time.'
+        : 'Sorry, I ran into an error trying to process that. Please try rephrasing your request.',
     };
   }
 }
