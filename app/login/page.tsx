@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { loginUser, signupUser, getCurrentUser } from '@/lib/auth';
+import RecastMark from '@/components/RecastMark';
 import { ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 function LoginPageInner() {
@@ -55,7 +56,7 @@ function LoginPageInner() {
       {/* ── left — brand panel ─────────────────────────────────── */}
       <div className="md:w-[44%] border-b md:border-b-0 md:border-r border-line p-6 sm:p-10 md:p-14 flex flex-col justify-between">
         <Link href="/" className="flex items-center gap-2.5 w-fit hover:opacity-70 transition-opacity">
-          <span className="w-5 h-5 bg-molten" />
+          <RecastMark className="h-7 w-7" />
           <span className="font-mono font-bold text-[11px] tracking-[0.28em] uppercase">Recast</span>
         </Link>
 

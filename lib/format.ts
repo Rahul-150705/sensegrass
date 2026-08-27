@@ -17,6 +17,16 @@ const PKG_KEY_ORDER = [
   'engines',
 ];
 
+// Files whose contents are binary — a text LLM cannot produce them, so they must
+// never enter the per-file build queue (they only make a category "fail"). The
+// export scaffold supplies real versions where one is actually needed.
+const BINARY_ASSET_RE =
+  /\.(ico|icns|png|jpe?g|gif|webp|avif|bmp|tiff?|woff2?|ttf|eot|otf|mp[34]|m4a|aac|wav|ogg|webm|mov|avi|pdf|zip|gz|tar|rar|7z|wasm|node|exe|dll|so|dylib)$/i;
+
+export function isBinaryAssetPath(path: string): boolean {
+  return BINARY_ASSET_RE.test(String(path || '').trim());
+}
+
 export function tidyFileContent(path: string, content: string): string {
   let out = String(content ?? '');
 

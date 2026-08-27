@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ShaderBackground } from './ShaderBackground';
 import SourceCastDiff from './SourceCastDiff';
+import RecastMark from './RecastMark';
 import { ArrowRight } from 'lucide-react';
 
 const METHOD = [
@@ -36,7 +37,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 rule-b border-line bg-ink/80 backdrop-blur-md">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <span className="w-5 h-5 bg-molten" />
+            <RecastMark className="h-7 w-7" />
             <span className="font-mono font-bold text-[11px] tracking-[0.28em] uppercase">Recast</span>
           </div>
           <nav className="hidden sm:flex items-center gap-6 mono-label">
@@ -181,7 +182,7 @@ export default function LandingPage() {
       <footer className="rule-t border-line">
         <div className="max-w-5xl mx-auto px-5 sm:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <span className="w-4 h-4 bg-molten" />
+            <RecastMark className="h-5 w-5" />
             <span className="mono-label">Recast — multi-agent AI product studio</span>
           </div>
           <span className="mono-label !text-[10px]">© {new Date().getFullYear()}</span>

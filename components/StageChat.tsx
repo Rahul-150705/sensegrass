@@ -39,7 +39,7 @@ const CONFIG: Record<
   },
   // One assistant for the whole product plan — blueprint + file tree together.
   product: {
-    title: 'Product assistant',
+    title: 'Product',
     sub: 'Change the blueprint, the file tree, or both',
     refine: '/api/product/refine',
     clear: '/api/product/clear',

@@ -7,7 +7,7 @@ import {
   ProductFileDirectory,
   FileDirectoryEntry,
 } from '@/types';
-import { tidyFileContent } from '@/lib/format';
+import { tidyFileContent, isBinaryAssetPath } from '@/lib/format';
 
 const groqApiKey = process.env.GROQ_API_KEY || '';
 export const isGroqConfigured = Boolean(
@@ -276,7 +276,11 @@ Respond ONLY with valid JSON matching this schema:
 }
 
 "type" must be one of: frontend, backend, config, database. Only include externalIntegrations that are
-clearly implied by the product — an empty array is fine if none are needed.`;
+clearly implied by the product — an empty array is fine if none are needed.
+
+Every file you list will be written by a text model, so list ONLY text/source files (code, JSON, CSS,
+Markdown, .env). NEVER list binary assets — no favicon.ico, images (.png/.jpg/.svg logos), fonts
+(.woff/.ttf), or archives. Those are added automatically at export time.`;
 
       const response = await groq.chat.completions.create({
         model: GROQ_MODEL,
@@ -289,13 +293,16 @@ clearly implied by the product — an empty array is fine if none are needed.`;
       console.log('✅ [GROQ API SUCCESS]: Generated product file directory via Groq!');
       const parsed = JSON.parse(content);
 
-      const files: FileDirectoryEntry[] = (Array.isArray(parsed.files) ? parsed.files : []).map((f: any) => ({
-        path: f.path || 'app/page.tsx',
-        name: f.name || f.path?.split('/').pop() || 'file.tsx',
-        type: ['frontend', 'backend', 'config', 'database'].includes(f.type) ? f.type : 'frontend',
-        language: f.language || 'typescript',
-        purpose: f.purpose || 'Implementation file for this product.',
-      }));
+      const files: FileDirectoryEntry[] = (Array.isArray(parsed.files) ? parsed.files : [])
+        .map((f: any) => ({
+          path: f.path || 'app/page.tsx',
+          name: f.name || f.path?.split('/').pop() || 'file.tsx',
+          type: ['frontend', 'backend', 'config', 'database'].includes(f.type) ? f.type : 'frontend',
+          language: f.language || 'typescript',
+          purpose: f.purpose || 'Implementation file for this product.',
+        }))
+        // A text model can't emit binary assets — drop any it planned anyway.
+        .filter((f: FileDirectoryEntry) => !isBinaryAssetPath(f.path));
 
       return {
         files: files.length > 0 ? files : getDefaultFileDirectory('SaaS Forge').files,

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { getCurrentUser, logoutUser, UserSession } from '@/lib/auth';
 import { Sparkles, FolderKanban, Shapes, LogOut } from 'lucide-react';
+import RecastMark from '@/components/RecastMark';
 
 // Floating left icon rail (bottom bar on mobile) + floating brand and sign-out,
 // modelled on the reference app's navigation. Content is Recast's.
@@ -41,9 +42,7 @@ export default function AppRail() {
           mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
         }`}
       >
-        <span className="w-5 h-5 bg-molten grid place-items-center">
-          <Sparkles className="w-3 h-3 text-ink" strokeWidth={2.75} />
-        </span>
+        <RecastMark className="h-6 w-6" />
         <span className="font-mono font-bold text-[11px] tracking-[0.22em] uppercase text-bone">Recast</span>
       </Link>
 

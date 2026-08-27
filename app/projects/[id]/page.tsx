@@ -16,6 +16,7 @@ import TerminalWidget from '@/components/TerminalWidget';
 import VSCodeEditor from '@/components/VSCodeEditor';
 import { Project, ChatMessage, ProjectFile } from '@/types';
 import { getDefaultFullStackFiles } from '@/lib/groq';
+import { isBinaryAssetPath } from '@/lib/format';
 import { getAuthToken } from '@/lib/auth';
 import { Layers, ArrowLeft, Terminal, Sparkles, Play, Code, FolderTree, ArrowRight } from 'lucide-react';
 
@@ -175,7 +176,11 @@ export default function ProjectStudioPage() {
   // that already generated successfully are skipped, so a retry only does the
   // ones that are still missing.
   const buildCategory = async (type: string, _label: string): Promise<boolean> => {
-    const catFiles = project?.fileDirectory?.files.filter((f) => f.type === type) || [];
+    // Binary assets (favicon.ico, fonts, images) can't be produced by a text
+    // model — skip them so they never turn a category "failed". The exporter
+    // supplies real versions where one is needed.
+    const catFiles =
+      project?.fileDirectory?.files.filter((f) => f.type === type && !isBinaryAssetPath(f.path)) || [];
     const alreadyDone = new Set(
       (project?.generatedFiles || [])
         .filter((f) => f.content && !f.content.startsWith('// Placeholder generated for'))
@@ -237,11 +242,12 @@ export default function ProjectStudioPage() {
   const handleBuildProduct = async () => {
     if (!project?.fileDirectory || isBuildingProduct) return;
 
-    const types = Array.from(new Set(project.fileDirectory.files.map((f) => f.type)));
+    const buildableFiles = project.fileDirectory.files.filter((f) => !isBinaryAssetPath(f.path));
+    const types = Array.from(new Set(buildableFiles.map((f) => f.type)));
     const initial: BuildCategoryStatus[] = types.map((type) => ({
       type,
       label: CATEGORY_LABELS[type] || type,
-      fileCount: project.fileDirectory!.files.filter((f) => f.type === type).length,
+      fileCount: buildableFiles.filter((f) => f.type === type).length,
       status: 'pending',
     }));
     setBuildCategories(initial);
@@ -545,12 +551,14 @@ export default function ProjectStudioPage() {
                   <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.75} />
                 </button>
               </div>
-            ) : isBuildingProduct || buildCategories.some((c) => c.status === 'error') ? (
+            ) : isBuildingProduct || isRetryingBuild || buildCategories.some((c) => c.status === 'error') ? (
               <BuildProgress
                 categories={buildCategories}
                 building={isBuildingProduct}
                 retrying={isRetryingBuild}
-                estimatedSeconds={(project.fileDirectory?.files.length ?? 0) * 6}
+                estimatedSeconds={
+                  (project.fileDirectory?.files.filter((f) => !isBinaryAssetPath(f.path)).length ?? 0) * 6
+                }
                 onRetry={handleRetryFailed}
                 onRetryCategory={handleRetryCategory}
                 onContinue={enterStudio}
