@@ -342,7 +342,7 @@ export default function ProjectStudioPage() {
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 flex items-center gap-1 font-mono">
-                <Globe className="w-3 h-3 text-indigo-400" /> {project.websiteUrl}
+                <Globe className="w-3 h-3 text-indigo-400" /> {project.websiteUrl || 'Idea-only project'}
               </p>
             </div>
           </div>

@@ -227,8 +227,8 @@ Run [`supabase_schema.sql`](./supabase_schema.sql) to create both tables.
 │   └── projects/[id]/     # VS Code Studio workspace (protected)
 ├── components/
 │   ├── VSCodeEditor.tsx   # VS Code-style IDE with copilot + live preview
-│   ├── Header.tsx
-│   ├── AuthModal.tsx
+│   ├── Header.tsx         # App nav + profile dropdown
+│   ├── LandingPage.tsx    # Public marketing page (WebGL shader backdrop)
 │   └── ...
 ├── lib/
 │   ├── groq.ts            # Groq API integration (GPT-OSS 120B) — analysis + code gen
