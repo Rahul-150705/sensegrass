@@ -71,26 +71,27 @@ ALTER TABLE public.chat_messages DROP CONSTRAINT IF EXISTS chat_messages_stage_c
 ALTER TABLE public.chat_messages ADD CONSTRAINT chat_messages_stage_check CHECK (stage IN ('studio', 'strategy', 'blueprint', 'fileDirectory'));
 
 -- ─────────────────────────────────────────────────────────────
--- TABLE: ai_cache
--- Input-keyed cache for the expensive pipeline stages (website scrape +
--- Groq calls). Same normalized input -> stored JSON is returned instead of
--- re-running the scraper/LLM. Keeps repeated identical runs off Groq's
--- free-tier quota. Written/read only by the server (service-role key).
+-- TABLE: code_cache
+-- Caches the CODE-GENERATION stage only. When Build asks Groq to write the
+-- file(s) for a given blueprint + file plan, the generated code is stored
+-- here; an identical request later returns the stored code and never calls
+-- Groq again. Nothing else in the pipeline is cached. Written/read only by
+-- the server (service-role key).
 -- ─────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.ai_cache (
-  cache_key TEXT PRIMARY KEY,          -- sha256(stage + stable-stringified input)
-  stage TEXT NOT NULL,                 -- 'analyze' | 'blueprint' | 'file-directory' | 'build-file'
-  payload JSONB NOT NULL,              -- the stored stage output
+CREATE TABLE IF NOT EXISTS public.code_cache (
+  cache_key TEXT PRIMARY KEY,          -- sha256(blueprint-core + file list)
+  product_name TEXT,                   -- for readability when browsing the table
+  file_paths TEXT[] NOT NULL,          -- which files this row covers
+  files JSONB NOT NULL,                -- the generated ProjectFile[] (path, name, type, language, content)
   hits INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()) NOT NULL,
   last_used_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()) NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_ai_cache_stage ON public.ai_cache(stage);
-CREATE INDEX IF NOT EXISTS idx_ai_cache_last_used ON public.ai_cache(last_used_at);
+CREATE INDEX IF NOT EXISTS idx_code_cache_last_used ON public.code_cache(last_used_at);
 
 -- RLS on with NO policy => the anon/auth clients can't read or write it;
 -- only the service-role key (used server-side) bypasses RLS.
-ALTER TABLE public.ai_cache ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.code_cache ENABLE ROW LEVEL SECURITY;
 
 -- ─────────────────────────────────────────────────────────────
 -- INDEXES (for performance)

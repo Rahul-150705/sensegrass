@@ -24,7 +24,7 @@ import {
   generateStarterUICodeWithAI,
   refineWithAI,
 } from '@/lib/openai';
-import { cached } from '@/lib/ai-cache';
+import { cachedCode } from '@/lib/code-cache';
 
 // Groq (GPT-OSS 120B) is the only AI provider used for every stage —
 // strategy analysis, blueprint planning, file directory planning, and
@@ -57,12 +57,10 @@ export async function generateBlueprint(
   userDescription: string,
   targetCustomer: string
 ): Promise<ProductBlueprint> {
-  return cached('blueprint', { analysis, userDescription, targetCustomer }, () => {
-    if (isGroqConfigured) {
-      return generateBlueprintWithGroq(analysis, userDescription, targetCustomer);
-    }
-    return generateBlueprintWithAI(analysis, userDescription, targetCustomer);
-  });
+  if (isGroqConfigured) {
+    return generateBlueprintWithGroq(analysis, userDescription, targetCustomer);
+  }
+  return generateBlueprintWithAI(analysis, userDescription, targetCustomer);
 }
 
 // Step 3: the concrete, reviewable build plan — the exact file tree Build
@@ -73,9 +71,7 @@ export async function generateFileDirectory(
   userDescription: string,
   targetCustomer: string
 ): Promise<ProductFileDirectory> {
-  return cached('file-directory', { analysis, userDescription, targetCustomer }, () =>
-    generateFileDirectoryWithGroq(analysis, userDescription, targetCustomer)
-  );
+  return generateFileDirectoryWithGroq(analysis, userDescription, targetCustomer);
 }
 
 // File Directory chat refine — distinct from refineStrategy (Stage A) and
@@ -99,21 +95,11 @@ export async function buildFiles(
   // (GroqGenerationError / GroqRateLimitError) on any failure — including a
   // missing API key — so a failed build is never persisted as placeholder stubs.
   //
-  // Cache key: the design-relevant slice of the blueprint + the exact file
-  // list. Re-running Build with the same plan reuses the generated code
-  // instead of spending Groq quota. (Errors throw, so nothing bad is cached.)
-  const keyInput = {
-    bp: {
-      productName: blueprint.productName,
-      tagline: blueprint.tagline,
-      features: blueprint.features,
-      pages: blueprint.pages,
-      navigation: blueprint.navigation,
-      uiDirection: blueprint.uiDirection,
-    },
-    files: filesToGenerate.map((f) => ({ path: f.path, type: f.type, language: f.language })),
-  };
-  return cached('build-file', keyInput, () => generateFullStackCodeWithGroq(blueprint, filesToGenerate));
+  // Only this stage is cached: an identical blueprint + file plan reuses the
+  // stored code from public.code_cache instead of spending Groq quota.
+  return cachedCode(blueprint, filesToGenerate, () =>
+    generateFullStackCodeWithGroq(blueprint, filesToGenerate)
+  );
 }
 
 export async function generateStarterUI(blueprint: ProductBlueprint): Promise<string> {

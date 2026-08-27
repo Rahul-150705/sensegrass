@@ -4,8 +4,6 @@ import { analyzeWebsite } from '@/lib/ai';
 import { saveProject } from '@/lib/store';
 import { getAuthenticatedUser } from '@/lib/auth-server';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { cached } from '@/lib/ai-cache';
-import type { ProductAnalysis, ScrapedContent } from '@/types';
 
 // Map a scrape failure reason to a message the user can act on.
 function scrapeErrorMessage(reason?: string): string {
@@ -51,55 +49,31 @@ export async function POST(request: Request) {
 
     const targetCust = targetCustomer || 'Small business owners';
 
-    // Steps 1 + 2 (scrape + Groq analysis) behind an input-keyed cache: an
-    // identical {url, description, targetCustomer} returns the stored result
-    // and skips both the scraper and the LLM. A scrape failure is thrown, not
-    // cached — a site being down is transient.
-    let analysis: ProductAnalysis;
-    let scraped: ScrapedContent;
-    try {
-      const result = await cached<{ analysis: ProductAnalysis; scraped: ScrapedContent }>(
-        'analyze',
-        { url: rawUrl.toLowerCase(), description, targetCustomer: targetCust },
-        async () => {
-          const s: ScrapedContent = rawUrl
-            ? await fetchAndExtractWebsiteContent(rawUrl)
-            : {
-                url: '',
-                title: 'Idea-only project (no source website)',
-                description: String(description).slice(0, 240),
-                headings: [],
-                mainText: String(description),
-                success: true,
-              };
+    // Step 1: extract webpage content server-side, or synthesize an idea-only
+    // context when no URL was given.
+    const scraped = rawUrl
+      ? await fetchAndExtractWebsiteContent(rawUrl)
+      : {
+          url: '',
+          title: 'Idea-only project (no source website)',
+          description: String(description).slice(0, 240),
+          headings: [],
+          mainText: String(description),
+          success: true,
+        };
 
-          // Don't feed the LLM a synthesized fallback and pass it off as a
-          // real analysis — surface the error instead.
-          if (rawUrl && !s.success) {
-            const e = new Error(scrapeErrorMessage(s.error)) as Error & {
-              unreachable?: boolean;
-              detail?: string | null;
-            };
-            e.unreachable = true;
-            e.detail = s.error || null;
-            throw e;
-          }
-
-          const a = await analyzeWebsite(rawUrl, s, description, targetCust);
-          return { analysis: a, scraped: s };
-        }
+    // If a URL was given but the site is unreachable / errored / disallowed,
+    // stop here — do NOT feed the LLM a synthesized fallback and pass it off
+    // as a real analysis. The user can fix the URL or build from an idea.
+    if (rawUrl && !scraped.success) {
+      return NextResponse.json(
+        { error: scrapeErrorMessage(scraped.error), unreachable: true, detail: scraped.error || null },
+        { status: 422 }
       );
-      analysis = result.analysis;
-      scraped = result.scraped;
-    } catch (e: any) {
-      if (e?.unreachable) {
-        return NextResponse.json(
-          { error: e.message, unreachable: true, detail: e.detail ?? null },
-          { status: 422 }
-        );
-      }
-      throw e;
     }
+
+    // Step 2: Send extracted text + prompt to Groq AI Agent
+    const analysis = await analyzeWebsite(rawUrl, scraped, description, targetCust);
 
     // Generate a project name — from the domain when there's a URL, otherwise
     // from the first few words of the description.
